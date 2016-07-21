@@ -25,17 +25,16 @@ server.post('/api/messages', connector.listen());
 // Bots Dialogs
 //=========================================================
 
-let address:IAddress;
 
 bot.dialog('/', (session) => {
-    if (!address)
-        address = session.message.address;
+    if (!session.userData.notificationAddresses) 
+        session.userData.notificationAddresses = [session.message.address];
+    setInterval(() => {
+        var msg = new Message()
+            .address(session.userData.notificationAddresses[0])
+            .text("tick-tock");
+        bot.send(msg);
+    }, 5000);
     session.send("Hello World");
 });
 
-setInterval(() => {
-    var msg = new Message()
-        .address(address)
-        .text("Yo Yo");
-    bot.send(msg);
-}, 5000);
