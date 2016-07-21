@@ -11,22 +11,59 @@ server.listen(process.env.port || process.env.PORT || 3978, () => {
 });
 // Create chat bot
 var connector = new botbuilder_1.ChatConnector({
-    appId: "0abb19bd-c099-4f45-a96d-ab8f9dde69c4" || process.env.MICROSOFT_APP_ID,
-    appPassword: "GrFNjgGr6pUapgC67k8c5VX" || process.env.MICROSOFT_APP_PASSWORD
+    appId: process.env.BOT_APP_ID,
+    appPassword: process.env.BOT_APP_PASSWORD
 });
-var bot = new botbuilder_1.UniversalBot(connector);
 server.post('/api/messages', connector.listen());
 //=========================================================
 // Bots Dialogs
 //=========================================================
-bot.dialog('/', (session) => {
-    if (!session.userData.notificationAddresses)
-        session.userData.notificationAddresses = [session.message.address];
-    setInterval(() => {
-        var msg = new botbuilder_1.Message()
-            .address(session.userData.notificationAddresses[0])
-            .text("tick-tock");
-        bot.send(msg);
-    }, 5000);
-    session.send("Hello World");
-});
+var bot = new botbuilder_1.UniversalBot(connector);
+bot.dialog('/', [
+        (session, args, next) => {
+        session.send("Hi There! What can I do for you?");
+        if (!session.userData.notificationAddresses) {
+            session.userData.notificationAddresses = [session.message.address];
+        }
+        next();
+    },
+        (session, args, next) => {
+        session.beginDialog('/intent');
+    }
+]);
+bot.dialog('/foo', [
+        (session, args, next) => {
+        session.send("Hi");
+        session.endDialog();
+    }]);
+var model = process.env.BOT_APP_LUIS_CORTANA_RECOGNIZER;
+var recognizer = new botbuilder_1.LuisRecognizer(model);
+var intentDialog = new botbuilder_1.IntentDialog({ recognizers: [recognizer] });
+bot.dialog('/intent', intentDialog);
+intentDialog.matches('builtin.intent.reminder.create_single_reminder', [
+        (session, args, next) => {
+        var title = botbuilder_1.EntityRecognizer.findEntity(args.entities, 'builtin.reminder.title');
+        var time = botbuilder_1.EntityRecognizer.resolveTime(args.entities);
+        var reminder = session.dialogData.reminder = {
+            title: title ? title.entity : null,
+            timestamp: time ? time.getTime() : null
+        };
+        // Prompt for title
+        if (!reminder.title) {
+            botbuilder_1.Prompts.text(session, 'What would you like to call your alarm?');
+        }
+        else {
+            next();
+        }
+        session.send("Got alarm");
+    }
+]);
+intentDialog.onDefault(botbuilder_1.DialogAction.send("Sorry I didn't understand you. I can only create & delete alarms."));
+setInterval(() => {
+    /*
+    var msg = new Message()
+        .address(session.userData.notificationAddresses[0])
+        .text("tick-tock");
+    bot.send(msg);
+    */
+}, 5000);
