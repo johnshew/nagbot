@@ -49,6 +49,7 @@ var bot = new UniversalBot(cloudConnector);
 // Bot global actions
 bot.endConversationAction('goodbye', 'Goodbye :)', { matches: /^goodbye/i });
 bot.beginDialogAction('help', '/help', { matches: /^help/i });
+bot.beginDialogAction('create','/freeform', { matches: /^create/i});
 
 bot.dialog('/', [
     function (session) {

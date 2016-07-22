@@ -29,6 +29,7 @@ var bot = new botbuilder_1.UniversalBot(cloudConnector);
 // Bot global actions
 bot.endConversationAction('goodbye', 'Goodbye :)', { matches: /^goodbye/i });
 bot.beginDialogAction('help', '/help', { matches: /^help/i });
+bot.beginDialogAction('create', '/freeform', { matches: /^create/i });
 bot.dialog('/', [
     function (session) {
         // Send a greeting and show help.
