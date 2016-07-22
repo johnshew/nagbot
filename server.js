@@ -1,11 +1,18 @@
 var restify = require('restify');
 var botbuilder_1 = require('botbuilder');
 var reminders = {};
+// Setup Restify Server
+var server = restify.createServer();
+// Make it web server
+server.get('/', (req, res, next) => {
+    res["redirect"]('./public/test.html', next); // restify .d.ts doesn't have redirect???
+});
+server.get(/\/public\/?.*/, restify.serveStatic({
+    directory: __dirname
+}));
 //=========================================================
 // Bot Setup
 //=========================================================
-// Setup Restify Server
-var server = restify.createServer();
 server.listen(process.env.port || process.env.PORT || 3978, () => {
     console.log('%s listening to %s', server.name, server.url);
 });
@@ -14,9 +21,6 @@ var cloudConnector = new botbuilder_1.ChatConnector({
     appId: process.env.BOT_APP_ID,
     appPassword: process.env.BOT_APP_PASSWORD
 });
-server.get(/\/public\/?.*/, restify.serveStatic({
-    directory: __dirname
-}));
 server.post('/api/messages', cloudConnector.listen());
 //=========================================================
 // Bots Dialogs

@@ -1,16 +1,29 @@
 
+
 import restify = require('restify');
+
 import { ConsoleConnector, ChatConnector, UniversalBot, IAddress, Message, LuisRecognizer, IntentDialog, DialogAction, EntityRecognizer, Prompts } from 'botbuilder';
 
 var reminders = {};
 
 
+// Setup Restify Server
+var server = restify.createServer();
+
+// Make it web server
+
+server.get('/', (req,res,next) => {
+    res["redirect"]('./public/test.html', next); // restify .d.ts doesn't have redirect???
+});
+ 
+server.get(/\/public\/?.*/, restify.serveStatic({
+    directory: __dirname
+}));
+
 //=========================================================
 // Bot Setup
 //=========================================================
 
-// Setup Restify Server
-var server = restify.createServer();
 
 server.listen(process.env.port || process.env.PORT || 3978, () => {
     console.log('%s listening to %s', server.name, server.url);
@@ -23,10 +36,6 @@ var cloudConnector = new ChatConnector({
 
 });
 
-
-server.get(/\/public\/?.*/, restify.serveStatic({
-    directory: __dirname
-}));
 
 server.post('/api/messages', cloudConnector.listen());
 
