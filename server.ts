@@ -48,10 +48,20 @@ var bot = new UniversalBot(cloudConnector);
 
 // Bot global actions
 bot.endConversationAction('goodbye', 'Goodbye :)', { matches: /^goodbye/i });
+
 bot.beginDialogAction('help', '/help', { matches: /^help/i });
-bot.beginDialogAction('create','/freeform', { matches: /^create/i});
+bot.beginDialogAction('menu','/menu', { matches: /^menu/i});
+bot.beginDialogAction('list', '/list', { matches: /^list/i});
+
 
 bot.dialog('/', [
+    (session) => 
+    {
+        session.beginDialog('/freeform');
+    }
+]);
+
+bot.dialog('/commands', [
     function (session) {
         // Send a greeting and show help.
         session.send("Hi... I will nag you until you do something.");
@@ -88,7 +98,7 @@ bot.dialog('/menu', [
 
 bot.dialog('/help', [
     function (session) {
-        session.endDialog("You can give me the following commands:\n\n* menu - returns to the menu.\n* goodbye - Eed this conversation.\n* help - Displays these commands.");
+        session.endDialog("You can give me the following commands:\n\n* menu - returns to the menu.\n* goodbye - End this conversation.\n* help - Displays these commands.\n\nOr you can just tell me what to do.  For example 'create a reminder'");
     }
 ]);
 
@@ -118,6 +128,12 @@ var recognizer = new LuisRecognizer(model);
 var intentDialog = new IntentDialog({ recognizers: [recognizer] });
 
 bot.dialog('/freeform', intentDialog);
+
+intentDialog.onBegin(
+  (session) => {
+      session.send("Hi.  If you need help just type help.");
+  }
+);
 
 intentDialog.matches('builtin.intent.reminder.create_single_reminder', [
     (session, args, next) => {
