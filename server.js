@@ -73,7 +73,7 @@ bot.dialog('/menu', [
 ]).reloadAction('reloadMenu', null, { matches: /^menu|show menu/i });
 bot.dialog('/help', [
     function (session) {
-        session.endDialog("You can give me the following commands:\n\n* menu - returns to the menu.\n* goodbye - End this conversation.\n* help - Displays these commands.\n\nOr you can just tell me what to do.  For example 'create a reminder'");
+        session.endDialog("You can create reminders by typing something like 'create a reminder for tomorrow at 2PM to do excercises'\n\nOr can give me a command:\n\n* menu - Returns to the menu.\n* list - show current reminders\n* goodbye - End the conversation.\n* help - Displays this message.");
     }
 ]);
 bot.dialog('/list', [
