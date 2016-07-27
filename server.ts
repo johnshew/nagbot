@@ -190,7 +190,7 @@ intentDialog.matches('builtin.intent.reminder.create_single_reminder', [
     }
 ]);
 
-intentDialog.onDefault(DialogAction.send("I can only create reminders.   For example: create a reminder for tomorrow at noon named test")
+intentDialog.onDefault(DialogAction.send("I can only create reminders.   For example: create a reminder for tomorrow at noon named test"));
 
 
 setInterval(() => {

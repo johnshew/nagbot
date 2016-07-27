@@ -1,5 +1,6 @@
-var restify = require('restify');
-var botbuilder_1 = require('botbuilder');
+"use strict";
+const restify = require('restify');
+const botbuilder_1 = require('botbuilder');
 var reminders = {};
 // Setup Restify Server
 var server = restify.createServer();
@@ -150,11 +151,12 @@ intentDialog.matches('builtin.intent.reminder.create_single_reminder', [
         }
     }
 ]);
-intentDialog.onDefault(botbuilder_1.DialogAction.send("I can only create reminders.   For example: create a reminder for tomorrow at noon named test"), setInterval(() => {
+intentDialog.onDefault(botbuilder_1.DialogAction.send("I can only create reminders.   For example: create a reminder for tomorrow at noon named test"));
+setInterval(() => {
     /*
     var msg = new Message()
         .address(session.userData.notificationAddresses[0])
         .text("tick-tock");
     bot.send(msg);
     */
-}, 5000));
+}, 5000);
