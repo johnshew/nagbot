@@ -1,12 +1,12 @@
 "use strict";
 const restify = require('restify');
-const botbuilder_1 = require('botbuilder');
-var reminders = {};
-// Setup Restify Server
+const builder = require('botbuilder');
+var usersWithReminders = {};
+// Setup restify server
 var server = restify.createServer();
-// Make it web server
+// Make it a web server
 server.get('/', (req, res, next) => {
-    res["redirect"]('./public/test.html', next); // restify .d.ts doesn't have redirect???
+    res["redirect"]('./public/test.html', next); //!BUG restify .d.ts doesn't have redirect???
 });
 server.get(/\/public\/?.*/, restify.serveStatic({
     directory: __dirname
@@ -18,7 +18,7 @@ server.listen(process.env.port || process.env.PORT || 3978, () => {
     console.log('%s listening to %s', server.name, server.url);
 });
 // Create chat bot
-var cloudConnector = new botbuilder_1.ChatConnector({
+var cloudConnector = new builder.ChatConnector({
     appId: process.env.BOT_APP_ID,
     appPassword: process.env.BOT_APP_PASSWORD
 });
@@ -26,7 +26,7 @@ server.post('/api/messages', cloudConnector.listen());
 //=========================================================
 // Bots Dialogs
 //=========================================================
-var bot = new botbuilder_1.UniversalBot(cloudConnector);
+var bot = new builder.UniversalBot(cloudConnector);
 // Bot global actions
 bot.endConversationAction('goodbye', 'Goodbye :)', { matches: /^goodbye/i });
 bot.beginDialogAction('help', '/help', { matches: /^help/i });
@@ -54,7 +54,7 @@ bot.dialog('/commands', [
 ]);
 bot.dialog('/menu', [
     function (session) {
-        botbuilder_1.Prompts.choice(session, "What would like to do?", ["entry", "list", "(quit)"]);
+        builder.Prompts.choice(session, "What would like to do?", ["entry", "list", "(quit)"]);
     },
     function (session, results) {
         if (results.response && results.response.entity != '(quit)') {
@@ -79,8 +79,8 @@ bot.dialog('/help', [
 bot.dialog('/list', [
         (session) => {
         session.send("Here are your current reminders.");
-        Object.keys(reminders).forEach((key) => {
-            session.send(`${key} at ${reminders[key].timestamp} `);
+        Object.keys(session.userData.reminders).forEach(key => {
+            session.send(`${key} at ${session.userData.reminders[key].timestamp} `);
         });
         session.endDialog("Done listing.");
     }
@@ -95,23 +95,23 @@ bot.dialog('/entry', [
     }
 ]);
 var model = process.env.BOT_APP_LUIS_CORTANA_RECOGNIZER;
-var recognizer = new botbuilder_1.LuisRecognizer(model);
-var intentDialog = new botbuilder_1.IntentDialog({ recognizers: [recognizer] });
+var recognizer = new builder.LuisRecognizer(model);
+var intentDialog = new builder.IntentDialog({ recognizers: [recognizer] });
 bot.dialog('/freeform', intentDialog);
 intentDialog.onBegin((session) => {
     session.send("Hi.  If you need help just type help. Version 0.1");
 });
 intentDialog.matches('builtin.intent.reminder.create_single_reminder', [
         (session, args, next) => {
-        var title = botbuilder_1.EntityRecognizer.findEntity(args.entities, 'builtin.reminder.title');
-        var time = botbuilder_1.EntityRecognizer.resolveTime(args.entities);
+        var title = builder.EntityRecognizer.findEntity(args.entities, 'builtin.reminder.reminder_text');
+        var time = builder.EntityRecognizer.resolveTime(args.entities);
         var reminder = session.dialogData.reminder = {
             title: title ? title.entity : null,
             timestamp: time ? time.getTime() : null
         };
         // Prompt for title
         if (!reminder.title) {
-            botbuilder_1.Prompts.text(session, 'What would you like to call your reminder?');
+            builder.Prompts.text(session, 'What would you like to call your reminder?');
         }
         else {
             next();
@@ -124,7 +124,7 @@ intentDialog.matches('builtin.intent.reminder.create_single_reminder', [
         }
         // Prompt for time (title will be blank if the user said cancel)
         if (reminder.title && !reminder.timestamp) {
-            botbuilder_1.Prompts.time(session, 'What time would you like to set the reminder for?');
+            builder.Prompts.time(session, 'What time would you like to set the reminder for?');
         }
         else {
             next();
@@ -133,30 +133,42 @@ intentDialog.matches('builtin.intent.reminder.create_single_reminder', [
         (session, results) => {
         var reminder = session.dialogData.reminder;
         if (results.response) {
-            var time = botbuilder_1.EntityRecognizer.resolveTime([results.response]);
+            var time = builder.EntityRecognizer.resolveTime([results.response]);
             reminder.timestamp = time ? time.getTime() : null;
         }
         // Set the reminder (if title or timestamp is blank the user said cancel)
         if (reminder.title && reminder.timestamp) {
             // Save address of who to notify and write to scheduler.
             reminder.address = session.message.address;
-            reminders[reminder.title] = reminder;
+            if (!('reminders' in session.userData))
+                session.userData.reminders = {};
+            session.userData.reminders[reminder.title] = reminder;
+            usersWithReminders[session.message.user.toString()] = session.userData.reminders;
             // Send confirmation to user
             var date = new Date(reminder.timestamp);
             var isAM = date.getHours() < 12;
-            session.send('Creating reminder named "%s" for %d/%d/%d %d:%02d%s', reminder.title, date.getMonth() + 1, date.getDate(), date.getFullYear(), isAM ? date.getHours() : date.getHours() - 12, date.getMinutes(), isAM ? 'am' : 'pm');
+            session.send(`Creating reminder to ${reminder.title} for ${date.toLocaleString('en-US')}`); //!TODO leverage session.message.textLocale
         }
         else {
-            session.send('Ok... no problem.');
+            session.send('Ok... will not create a reminder.');
         }
     }
 ]);
-intentDialog.onDefault(botbuilder_1.DialogAction.send("I can only create reminders.   For example: create a reminder for tomorrow at noon named test"));
+intentDialog.onDefault(builder.DialogAction.send("I can only create reminders.   For example: create a reminder for tomorrow at noon named test"));
 setInterval(() => {
-    /*
-    var msg = new Message()
-        .address(session.userData.notificationAddresses[0])
-        .text("tick-tock");
-    bot.send(msg);
-    */
+    console.log('tick');
+    Object.keys(usersWithReminders).forEach(key => {
+        console.log(`found user ${key} as ${JSON.stringify(usersWithReminders[key])}`);
+        var reminders = usersWithReminders[key];
+        Object.keys(reminders).forEach(reminderTitle => {
+            var reminder = reminders[reminderTitle];
+            if (reminder.lastReminderSentTime && ((Date.now() - reminder.lastReminderSentTime.getTime()) > 5000)) {
+                reminder.lastReminderSentTime = Date.now();
+                var msg = new builder.Message()
+                    .address(reminder.address)
+                    .text(reminder.title);
+                bot.send(msg);
+            }
+        });
+    });
 }, 5000);
