@@ -131,7 +131,7 @@ bot.dialog('/freeform', intentDialog);
 
 intentDialog.onBegin(
   (session) => {
-      session.send("Hi.  If you need help just type help.");
+      session.send("Hi.  If you need help just type help. Version 0.1");
   }
 );
 

@@ -99,7 +99,7 @@ var recognizer = new botbuilder_1.LuisRecognizer(model);
 var intentDialog = new botbuilder_1.IntentDialog({ recognizers: [recognizer] });
 bot.dialog('/freeform', intentDialog);
 intentDialog.onBegin((session) => {
-    session.send("Hi.  If you need help just type help.");
+    session.send("Hi.  If you need help just type help. Version 0.1");
 });
 intentDialog.matches('builtin.intent.reminder.create_single_reminder', [
         (session, args, next) => {
