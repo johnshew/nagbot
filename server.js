@@ -54,7 +54,7 @@ bot.dialog('/commands', [
 ]);
 bot.dialog('/menu', [
     function (session) {
-        botbuilder_1.Prompts.choice(session, "What would like to do?", "entry|list|(quit)");
+        botbuilder_1.Prompts.choice(session, "What would like to do?", ["entry", "list", "(quit)"]);
     },
     function (session, results) {
         if (results.response && results.response.entity != '(quit)') {
