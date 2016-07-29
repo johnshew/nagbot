@@ -2,7 +2,7 @@
 const restify = require('restify');
 const builder = require('botbuilder');
 var usersWithReminders = {};
-var localBotNoAuth = true;
+var localBotNoAuth = false;
 // Setup restify server
 var server = restify.createServer();
 // Make it a web server
@@ -162,18 +162,61 @@ intentDialog.matches('builtin.intent.reminder.create_single_reminder', [
     }
 ]);
 intentDialog.onDefault(builder.DialogAction.send("I can only create reminders.   For example: create a reminder for tomorrow at noon named test"));
-setInterval(() => {
-    console.log('tick');
+const msecInMinute = 1000 * 60;
+const msecInHour = msecInMinute * 60;
+const msecInDay = msecInHour * 24;
+function DaysHoursMinutes(ms) {
+    var days = ms / msecInDay | 0;
+    ms = ms - days * msecInDay;
+    var hours = ms / msecInHour | 0;
+    ms = ms - hours * msecInHour;
+    var minutes = ms / msecInMinute | 0;
+    return { days: days, hours: hours, minutes: minutes };
+}
+function ShouldNotify(completeBy, lastNotification, frequency) {
+    var now = Date.now();
+    var sinceNotification = DaysHoursMinutes(now - lastNotification.getTime());
+    var msToComplete = completeBy.getTime() - now;
+    var expired = (msToComplete < 0);
+    if (expired) {
+        msToComplete = -msToComplete;
+    }
+    var toComplete = DaysHoursMinutes(msToComplete);
+    if (frequency === 'ramped') {
+        if (toComplete.days <= 1) {
+            frequency = "daily";
+        }
+        else {
+            frequency = "hourly";
+        }
+        if (toComplete.minutes > 5) {
+            frequency = "close";
+        }
+    }
+    if (frequency === "daily") {
+        return (sinceNotification.hours < 24);
+    }
+    else if (frequency === "hourly") {
+        return (sinceNotification.minutes < 60);
+    }
+    else if (frequency === "close") {
+        return (sinceNotification.minutes > 5);
+    }
+    else {
+        console.log('Should not get here.');
+        return false;
+    }
+}
+function Nag() {
     Object.keys(usersWithReminders).forEach(key => {
-        console.log(`found user ${key} as ${JSON.stringify(usersWithReminders[key])}`);
+        console.log(`found user ${key} with reminders`);
         var reminders = usersWithReminders[key];
         Object.keys(reminders).forEach(reminderTitle => {
             var reminder = reminders[reminderTitle];
-            if (!reminder.lastReminderSentTime) {
-                reminder.lastReminderSentTime = 0;
-            }
-            var delay = Date.now() - reminder.lastReminderSentTime;
-            if (delay > 5000) {
+            var when = new Date(reminder.timestamp);
+            var lastNotification = new Date((reminder.lastReminderSentTime) ? reminder.lastReminderSentTime : Date.now()); // Creating the reminder assumes you know about it.  :-)
+            console.log(`Reminder to ${reminder.title} at ${when.toLocaleString('en-US')} with last notification at ${lastNotification.toLocaleString('en-US')}`);
+            if (ShouldNotify(when, lastNotification, "ramped")) {
                 reminder.lastReminderSentTime = Date.now();
                 var msg = new builder.Message()
                     .address(reminder.address)
@@ -182,5 +225,9 @@ setInterval(() => {
             }
         });
     });
+}
+setInterval(() => {
+    console.log('tick');
+    Nag();
 }, 5000);
 //# sourceMappingURL=server.js.map
