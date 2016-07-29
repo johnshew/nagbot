@@ -5,6 +5,8 @@ import builder = require('botbuilder');
 
 var usersWithReminders: { [userId: string]: any } = {};
 
+var localBotNoAuth = true;
+
 // Setup restify server
 var server = restify.createServer();
 
@@ -28,8 +30,8 @@ server.listen(process.env.port || process.env.PORT || 3978, () => {
 
 // Create chat bot
 var cloudConnector = new builder.ChatConnector({
-    appId: process.env.BOT_APP_ID,
-    appPassword: process.env.BOT_APP_PASSWORD
+    appId: localBotNoAuth ? "" : process.env.BOT_APP_ID,
+    appPassword: localBotNoAuth ? "" : process.env.BOT_APP_PASSWORD
 
 });
 
@@ -99,13 +101,17 @@ bot.dialog('/help', [
 ]);
 
 bot.dialog('/list', [
-    (session) => {
-        session.send("Here are your current reminders.");
-        Object.keys(session.userData.reminders).forEach(key => {
-            session.send(`${key} at ${session.userData.reminders[key].timestamp} `);
-        });
-        session.endDialog("Done listing.");
-
+    (session, args, next) => {
+        if (session.userData.reminders) {
+            session.send("Here are your current reminders.");
+            Object.keys(session.userData.reminders).forEach(key => {
+                session.send(`${key} at ${session.userData.reminders[key].timestamp} `);
+            });
+            session.endDialog();
+        } else {
+            session.send("You have no reminders set");
+            next();
+        }
     }
 ]);
 
@@ -174,7 +180,7 @@ intentDialog.matches('builtin.intent.reminder.create_single_reminder', [
             reminder.address = session.message.address;
             if (!('reminders' in session.userData)) session.userData.reminders = {};
             session.userData.reminders[reminder.title] = reminder;
-            usersWithReminders[session.message.user.toString()] = session.userData.reminders;
+            usersWithReminders[session.message.user.id] = session.userData.reminders;
 
             // Send confirmation to user
             var date = new Date(reminder.timestamp);
@@ -190,15 +196,16 @@ intentDialog.onDefault(builder.DialogAction.send("I can only create reminders.  
 
 
 setInterval(
-    () => 
-    {
+    () => {
         console.log('tick');
         Object.keys(usersWithReminders).forEach(key => {
-            console.log(`found user ${ key } as ${ JSON.stringify(usersWithReminders[key])}`);
+            console.log(`found user ${key} as ${JSON.stringify(usersWithReminders[key])}`);
             var reminders = usersWithReminders[key];
             Object.keys(reminders).forEach(reminderTitle => {
                 var reminder = reminders[reminderTitle];
-                if (reminder.lastReminderSentTime && ((Date.now() - reminder.lastReminderSentTime.getTime()) > 5000)) {
+                if (!reminder.lastReminderSentTime) { reminder.lastReminderSentTime = 0; } 
+                var delay = Date.now() - reminder.lastReminderSentTime;
+                if (delay > 5000) {
                     reminder.lastReminderSentTime = Date.now();
                     var msg = new builder.Message()
                         .address(reminder.address)

@@ -3,7 +3,8 @@
         "module": "commonjs",
         "target": "es6",
         "outDir": "./",
-        "noImplicitAny": false
+        "noImplicitAny": false,
+        "sourceMap": true
     },
     "files": [
         "typings/index.d.ts",
