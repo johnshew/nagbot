@@ -15,7 +15,7 @@ server.get('/', (req, res, next) => {
 });
 
 server.get(/\/public\/?.*/, restify.plugins.serveStatic({
-    directory: __dirname
+    directory: __dirname + "/.."
     }));
 
 
