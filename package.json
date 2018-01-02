@@ -13,6 +13,7 @@
   "license": "MIT",
   "devDependencies": {
     "@types/chai": "^4.0.10",
+    "@types/chai-http": "^3.0.3",
     "@types/mocha": "^2.2.45",
     "@types/restify": "^5.0.2",
     "typescript": "^2.4.2"
