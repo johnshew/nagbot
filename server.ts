@@ -8,6 +8,10 @@ var localBotNoAuth = false;
 
 // Setup restify server
 var server = restify.createServer();
+export function GetServer() : restify.Server { return server; }
+
+server.use(restify.plugins.bodyParser());
+server.use(restify.plugins.queryParser())
 
 // Make it a web server
 server.get('/', (req, res, next) => {
@@ -15,14 +19,25 @@ server.get('/', (req, res, next) => {
 });
 
 server.get(/\/public\/?.*/, restify.plugins.serveStatic({
-    directory: __dirname + "/.."
+    directory: __dirname
     }));
 
+
+server.get('/api', (req, res, next) => {
+    res.send("Working");
+    return next();
+});
+
+server.post('/api/create', (req, res, next) => {
+    var item = req.body;
+    item["id"] = 1
+    res.send(201, item);
+    next();
+});
 
 server.listen(process.env.port || process.env.PORT || 3978, () => {
     console.log('%s listening to %s', server.name, server.url);
 });
-
 
 const msecInMinute = 1000 * 60;
 const msecInHour = msecInMinute * 60;
