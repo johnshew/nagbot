@@ -2,13 +2,24 @@
 
 import restify = require('restify');
 
-var usersWithReminders: { [userId: string]: any } = {};
+
+var usersWithReminders: {
+    [userId: string]: [
+        {
+            id: number,
+            active: boolean,
+            description: string,
+            nextNotification: Date,
+            lastNotificationSent: Date,
+        }
+    ]
+} = {};
 
 var localBotNoAuth = false;
 
 // Setup restify server
 var server = restify.createServer();
-export function GetServer() : restify.Server { return server; }
+export function GetServer(): restify.Server { return server; }
 
 server.use(restify.plugins.bodyParser());
 server.use(restify.plugins.queryParser())
@@ -20,7 +31,7 @@ server.get('/', (req, res, next) => {
 
 server.get(/\/public\/?.*/, restify.plugins.serveStatic({
     directory: __dirname
-    }));
+}));
 
 
 server.get('/api', (req, res, next) => {
@@ -52,7 +63,8 @@ function DaysHoursMinutes(ms: number): { days: number, hours: number, minutes: n
     return { days: days, hours: hours, minutes: minutes };
 }
 
-function ShouldNotify(completeBy: Date, lastNotification: Date, frequency: "daily" | "hourly" | "close" | "ramped") {
+function CheckForNotification(completeBy: Date, lastNotification: Date, frequency: "daily" | "hourly" | "close" | "ramped")
+    : boolean {
     var now = Date.now();
     var sinceNotification = DaysHoursMinutes(now - lastNotification.getTime());
     var msToComplete = completeBy.getTime() - now;
@@ -79,23 +91,31 @@ function ShouldNotify(completeBy: Date, lastNotification: Date, frequency: "dail
 }
 
 
-function Nag() {
+function Nag(): boolean {
+    var done = true;
     Object.keys(usersWithReminders).forEach(key => {
         console.log(`found user ${key} with reminders`);
         var reminders = usersWithReminders[key];
-        Object.keys(reminders).forEach(reminderTitle => {
-            var reminder = reminders[reminderTitle];
-            var when = new Date(reminder.timestamp);
-            var lastNotification = new Date((reminder.lastReminderSentTime) ? reminder.lastReminderSentTime : Date.now()); // Creating the reminder assumes you know about it.  :-)
-            console.log(`Reminder to ${reminder.title} at ${when.toLocaleString('en-US')} with last notification at ${lastNotification.toLocaleString('en-US')}`);
-            if (ShouldNotify(when, lastNotification, "ramped")) {
-                reminder.lastReminderSentTime = Date.now();
+        reminders.forEach(reminder => {
+            if (reminder.active) { done = false; }
+            var description = reminder.description;
+            var when = reminder.nextNotification;
+            var lastNotification = reminder.lastNotificationSent;
+            console.log(`Reminder to ${description} at ${when.toLocaleString('en-US')} with last notification at ${lastNotification.toLocaleString('en-US')}`);
+            var notify = CheckForNotification(when, lastNotification, "ramped");
+            if (notify) {
+                reminder.lastNotificationSent = new Date(Date.now());
             }
         });
     });
+    return done;
 }
 
-setInterval(() => {
-    console.log('tick');
-    Nag();
+var tickTock = setInterval(() => {
+    var done = Nag();
+    console.log(`Nagging. Finished: ${ done }`)
+    if (done) {
+        clearInterval(tickTock);
+        server.close();
+    }
 }, 5000);
