@@ -36,7 +36,8 @@ describe('API endpoint /api', function() {
       .post('/api/create')
       .send({
          description: 'excercise',
-         dueDate: Date.parse( "Aug 28, 2018 23:30:00" )
+         nextNotification: Date.parse( "Aug 28, 2018 23:30:00" ),
+         notificationPlan: "ramped"
       })
       .then(function(res) {
         expect(res).to.have.status(201);

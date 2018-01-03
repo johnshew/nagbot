@@ -2,20 +2,18 @@
 
 import restify = require('restify');
 
+class Reminder {
+    id: number;
+    active: boolean;
+    description: string;
+    nextNotification: Date;
+    lastNotificationSent: Date;
+    notificationPlan : string
+}
 
 var usersWithReminders: {
-    [userId: string]: [
-        {
-            id: number,
-            active: boolean,
-            description: string,
-            nextNotification: Date,
-            lastNotificationSent: Date,
-        }
-    ]
+    [userId: string]: Reminder[];
 } = {};
-
-var localBotNoAuth = false;
 
 // Setup restify server
 var server = restify.createServer();
@@ -40,9 +38,18 @@ server.get('/api', (req, res, next) => {
 });
 
 server.post('/api/create', (req, res, next) => {
-    var item = req.body;
-    item["id"] = 1
-    res.send(201, item);
+    let user = "j@s.c";
+    let reminder = new Reminder;
+    reminder.id = Math.random();
+    reminder.active = true;
+    reminder.lastNotificationSent = new Date(0);
+    req.body.nextNotification = new Date(req.body.nextNotification);
+    let values = pick(req.body, 'description', 'nextNotification','notificationPlan');
+    reminder = {...reminder, ...values};
+    let entry = usersWithReminders[user];
+    if (!entry) { entry = usersWithReminders[user] = []; }
+    entry.push(reminder);
+    res.send(201, reminder);
     next();
 });
 
@@ -63,7 +70,7 @@ function DaysHoursMinutes(ms: number): { days: number, hours: number, minutes: n
     return { days: days, hours: hours, minutes: minutes };
 }
 
-function CheckForNotification(completeBy: Date, lastNotification: Date, frequency: "daily" | "hourly" | "close" | "ramped")
+function CheckForNotification(completeBy: Date, lastNotification: Date, frequency: string)
     : boolean {
     var now = Date.now();
     var sinceNotification = DaysHoursMinutes(now - lastNotification.getTime());
@@ -102,13 +109,19 @@ function Nag(): boolean {
             var when = reminder.nextNotification;
             var lastNotification = reminder.lastNotificationSent;
             console.log(`Reminder to ${description} at ${when.toLocaleString('en-US')} with last notification at ${lastNotification.toLocaleString('en-US')}`);
-            var notify = CheckForNotification(when, lastNotification, "ramped");
+            var notify = CheckForNotification(when, lastNotification, reminder.notificationPlan);
             if (notify) {
+                console.log(reminder.description);
                 reminder.lastNotificationSent = new Date(Date.now());
             }
         });
     });
     return done;
+}
+
+function pick<T, K extends keyof T>(obj: T, ...keys: K[]): Pick<T, K> {
+    var result = keys.reduce((p,c) => { p[c] = obj[c]; return p; }, {} as Pick<T,K>);
+    return result;
 }
 
 var tickTock = setInterval(() => {
