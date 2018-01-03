@@ -9,3 +9,6 @@ cache:
   directories:
     - "node_modules"
 
+notifications:
+  webhooks: "https://outlook.office.com/webhook/f4b01485-234d-44f8-9ec9-839b4edb9b6a@72f988bf-86f1-41af-91ab-2d7cd011db47/TravisCI/fec21241f0644b658bc2df6b45db28d8/59fa4731-b2cc-47c1-8f77-7c77dcdb315d"
+
