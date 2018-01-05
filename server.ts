@@ -13,7 +13,7 @@ class Reminder {
     description: string;
     nextNotification: Date;
     lastNotificationSent: Date;
-    notificationPlan : string
+    notificationPlan: string
 }
 
 var usersWithReminders: {
@@ -46,7 +46,7 @@ server.get('/api/v1.0/reminders', (req, res, next) => {
 
 server.post('/api/v1.0/reminders', (req, res, next) => {
     let user = "j@s.c";
-    let reminder = pick(req.body,'id','description','nextNotification','notificationPlan') as Reminder;
+    let reminder = pick(req.body, 'id', 'description', 'nextNotification', 'notificationPlan') as Reminder;
     if (!reminder.id) reminder.id = uuid.v4() as string;
     reminder.active = true;
     reminder.lastNotificationSent = new Date(0);
@@ -76,27 +76,26 @@ function DaysHoursMinutes(ms: number): { days: number, hours: number, minutes: n
     return { days: days, hours: hours, minutes: minutes };
 }
 
-function CheckForNotification(completeBy: Date, lastNotification: Date, frequency: string)
-    : boolean {
+function CheckForNotification(completeBy: Date, lastNotification: Date, frequency: string): boolean {
     var now = Date.now();
-    var sinceNotification = DaysHoursMinutes(now - lastNotification.getTime());
     var msToComplete = completeBy.getTime() - now;
-    var expired = (msToComplete < 0);
-    if (expired) { msToComplete = -msToComplete; }
-    var toComplete = DaysHoursMinutes(msToComplete);
+    if (msToComplete < 0) return true;
+
+    let msSince = now - lastNotification.getTime();
 
     if (frequency === 'ramped') {
-        if (toComplete.days <= 1) { frequency = "daily"; }
-        else { frequency = "hourly" }
-        if (toComplete.minutes > 5) { frequency = "close" }
+        if (msSince > msecInDay) { frequency = "daily"; }
+        else if (msSince > msecInHour) { frequency = "hourly" }
+        else { frequency = "close" }
     }
 
+
     if (frequency === "daily") {
-        return (sinceNotification.hours < 24);
+        return (msSince > msecInDay);
     } else if (frequency === "hourly") {
-        return (sinceNotification.minutes < 60);
+        return (msSince > msecInHour);
     } else if (frequency === "close") {
-        return (sinceNotification.minutes > 5);
+        return (msSince > 5 * msecInMinute);
     } else {
         console.log('Should not get here.')
         return false;
@@ -126,23 +125,22 @@ function Nag(): boolean {
 }
 
 function pick<T, K extends keyof T>(obj: T, ...keys: K[]): Pick<T, K> {
-    var result = keys.reduce((p,c) => { p[c] = obj[c]; return p; }, {} as Pick<T,K>);
+    var result = keys.reduce((p, c) => { p[c] = obj[c]; return p; }, {} as Pick<T, K>);
     return result;
 }
 
 
 var tickTock = setInterval(() => {
     var done = Nag();
-    console.log(`Nagging. Finished: ${ done }`)
+    console.log(`Nagging. Finished: ${done}`)
     if (done) { appDone(); }
 }, 5000);
 
-var closeDown = setInterval(()=>{ 
-    appDone(); 
-},30000);
+var closeDown = setInterval(() => {
+    appDone();
+}, 30000);
 
-function appDone()
-{
+function appDone() {
     clearInterval(tickTock);
     clearInterval(closeDown);
     server.close();
