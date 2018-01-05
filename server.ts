@@ -4,6 +4,7 @@
 // import * as uuid from 'uuid';
 
 import * as restify from 'restify';
+import * as uuid from 'uuid';
 
 class Reminder {
     id: string; // UUID
@@ -42,17 +43,15 @@ server.get('/api/v1.0/reminders', (req, res, next) => {
 
 server.post('/api/v1.0/reminders', (req, res, next) => {
     let user = "j@s.c";
-    let reminder = new Reminder;
-    if (!reminder.id) reminder.id = "as";
+    let reminder = pick(req.body,'id','description','nextNotification','notificationPlan') as Reminder;
+    if (!reminder.id) reminder.id = uuid.v4() as string;
     reminder.active = true;
     reminder.lastNotificationSent = new Date(0);
-    req.body.nextNotification = new Date(req.body.nextNotification);
-    let values = pick(req.body, 'description', 'nextNotification','notificationPlan');
-    reminder = {...reminder, ...values};
+    reminder.nextNotification = new Date(req.body.nextNotification);
     let entry = usersWithReminders[user];
     if (!entry) { entry = usersWithReminders[user] = []; }
     entry.push(reminder);
-    res.headers["Location"] = `/api/v1.0/reminders/${reminder.id}`;
+    res.header("Location", `/api/v1.0/reminders/${reminder.id}`);
     res.send(201, reminder);
     next();
 });
