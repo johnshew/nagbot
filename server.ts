@@ -38,7 +38,9 @@ server.get(/\/public\/?.*/, restify.plugins.serveStatic({
 
 
 server.get('/api/v1.0/reminders', (req, res, next) => {
-    res.send("Working");
+    let user = "j@s.c";
+    if (!usersWithReminders[user]) { usersWithReminders[user] = []; }
+    res.send(usersWithReminders[user]);
     return next();
 });
 
