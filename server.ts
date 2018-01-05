@@ -5,6 +5,7 @@
 
 import * as restify from 'restify';
 import * as uuid from 'uuid';
+import { clearInterval } from 'timers';
 
 class Reminder {
     id: string; // UUID
@@ -127,11 +128,20 @@ function pick<T, K extends keyof T>(obj: T, ...keys: K[]): Pick<T, K> {
     return result;
 }
 
+
 var tickTock = setInterval(() => {
     var done = Nag();
     console.log(`Nagging. Finished: ${ done }`)
-    if (done) {
-        clearInterval(tickTock);
-        server.close();
-    }
+    if (done) { appDone(); }
 }, 5000);
+
+var closeDown = setInterval(()=>{ 
+    appDone(); 
+},30000);
+
+function appDone()
+{
+    clearInterval(tickTock);
+    clearInterval(closeDown);
+    server.close();
+}
