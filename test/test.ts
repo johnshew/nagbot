@@ -10,7 +10,7 @@ import * as app from '../server'; // Our app
 
 var server = app.GetServer();
  
-describe('API endpoint /api', function() {  
+describe('API endpoint /api/v1.0/reminders', function() {  
   this.timeout(5000); // How long to wait for a response (ms)
  
   before(function() {
@@ -19,10 +19,10 @@ describe('API endpoint /api', function() {
   after(function() {
   });
  
-  // /api GET 
-  it('should return Working', function() {
+  // /api/v1.0/rem9inders GET 
+  it('should return Working', () => {
     return chai.request(server)
-      .get('/api')
+      .get('/api/v1.0/reminders')
       .then(function(res) {
         expect(res).to.have.status(200);
         expect(res).to.be.json;
@@ -30,10 +30,10 @@ describe('API endpoint /api', function() {
       });
   });
 
-  // /api/new POST 
-  it('should add new task', function() {
+  // /api/v1.0/reminders POST 
+  it('should add new task', () => {
     return chai.request(server)
-      .post('/api/create')
+      .post('/api/v1.0/reminders')
       .send({
          description: 'excercise',
          nextNotification: Date.parse( "Aug 28, 2018 23:30:00" ),

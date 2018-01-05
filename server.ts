@@ -1,9 +1,12 @@
 
 
-import restify = require('restify');
+// import * as restify from 'restify';
+// import * as uuid from 'uuid';
+
+import * as restify from 'restify';
 
 class Reminder {
-    id: number;
+    id: string; // UUID
     active: boolean;
     description: string;
     nextNotification: Date;
@@ -32,15 +35,15 @@ server.get(/\/public\/?.*/, restify.plugins.serveStatic({
 }));
 
 
-server.get('/api', (req, res, next) => {
+server.get('/api/v1.0/reminders', (req, res, next) => {
     res.send("Working");
     return next();
 });
 
-server.post('/api/create', (req, res, next) => {
+server.post('/api/v1.0/reminders', (req, res, next) => {
     let user = "j@s.c";
     let reminder = new Reminder;
-    reminder.id = Math.random();
+    if (!reminder.id) reminder.id = "as";
     reminder.active = true;
     reminder.lastNotificationSent = new Date(0);
     req.body.nextNotification = new Date(req.body.nextNotification);
@@ -49,6 +52,7 @@ server.post('/api/create', (req, res, next) => {
     let entry = usersWithReminders[user];
     if (!entry) { entry = usersWithReminders[user] = []; }
     entry.push(reminder);
+    res.headers["Location"] = `/api/v1.0/reminders/${reminder.id}`;
     res.send(201, reminder);
     next();
 });
