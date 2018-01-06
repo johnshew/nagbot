@@ -1,5 +1,6 @@
 'use strict';
 
+import 'mocha';
 import * as chai from 'chai';
 import * as restify from 'restify';
 import * as uuid from 'uuid';
@@ -15,7 +16,7 @@ describe('API endpoint /api/v1.0/reminders', function () {
   this.timeout(5000); // How long to wait for a response (ms)
 
   before(function() { });
-  after(function()  { });
+  after(function() { });
 
   // /api/v1.0/rem9inders GET 
   it('should return reminders', () => {
@@ -43,7 +44,7 @@ describe('API endpoint /api/v1.0/reminders', function () {
         expect(res).to.be.json;
         expect(res).to.have.header('location');
         expect(res.body).to.be.an('object');
-        expect(res.body).to.have.property('id');
+        expect(res.body).to.have.property('id');        
       });
   });
 
@@ -67,7 +68,8 @@ describe('API endpoint /api/v1.0/reminders', function () {
       });
   });
 
-  // /api/v1.0/rem9inders GET 
+  var elements = [];
+  // /api/v1.0/reminders GET 
   it('should return the list of reminders', () => {
     return chai.request(server)
       .get('/api/v1.0/reminders')
@@ -75,6 +77,17 @@ describe('API endpoint /api/v1.0/reminders', function () {
         expect(res).to.have.status(200);
         expect(res).to.be.json;
         expect(res.body).to.be.an('array');
+        (res.body as any[]).forEach((item) => elements.push(item.id));        
+      });
+  });
+
+  // /api/v1.0/reminders/x
+  it('should return the one of the existing reminders', () => {
+    return chai.request(server)
+      .get(`/api/v1.0/reminders/${ elements[0] }`)
+      .then(function (res) {
+        expect(res).to.have.status(200);
+        expect(res).to.be.json;        
       });
   });
   

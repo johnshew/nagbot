@@ -59,6 +59,18 @@ server.post('/api/v1.0/reminders', (req, res, next) => {
     next();
 });
 
+server.get('/api/v1.0/reminders/:id', (req, res, next) => {
+    let user = "j@s.c";
+    let reminder = usersWithReminders[user].find((r) => r.id == req.params.id);
+    res.send(reminder);
+    next();
+});
+
+server.patch('/api/v1.0/reminders/:id', (req, res, next) => {
+
+});
+
+
 server.listen(process.env.port || process.env.PORT || 3978, () => {
     console.log('%s listening to %s', server.name, server.url);
 });
@@ -88,7 +100,6 @@ function CheckForNotification(completeBy: Date, lastNotification: Date, frequenc
         else if (msSince > msecInHour) { frequency = "hourly" }
         else { frequency = "close" }
     }
-
 
     if (frequency === "daily") {
         return (msSince > msecInDay);
@@ -132,15 +143,17 @@ function pick<T, K extends keyof T>(obj: T, ...keys: K[]): Pick<T, K> {
 
 var tickTock = setInterval(() => {
     var done = Nag();
-    console.log(`Nagging. Finished: ${done}`)
+    console.log(`TickTock completed.  All done: ${done}`)
     if (done) { appDone(); }
 }, 5000);
 
 var closeDown = setInterval(() => {
+    
     appDone();
 }, 30000);
 
 function appDone() {
+    console.log("Closing Done.");
     clearInterval(tickTock);
     clearInterval(closeDown);
     server.close();
