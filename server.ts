@@ -17,7 +17,7 @@ class Reminder {
 }
 
 var usersWithReminders: {
-    [userId: string]: Reminder[];
+    [userId: string]: { [id: string]: Reminder }
 } = {};
 
 // Setup restify server
@@ -39,8 +39,10 @@ server.get(/\/public\/?.*/, restify.plugins.serveStatic({
 
 server.get('/api/v1.0/reminders', (req, res, next) => {
     let user = "j@s.c";
-    if (!usersWithReminders[user]) { usersWithReminders[user] = []; }
-    res.send(usersWithReminders[user]);
+    if (!usersWithReminders[user]) { usersWithReminders[user] = {}; }
+    let reminders = usersWithReminders[user];
+    let reminderArray = Object.keys(usersWithReminders[user]).reduce((prev, key) => { prev.push(reminders[key]); return prev}, []);
+    res.send(reminderArray);
     return next();
 });
 
@@ -52,8 +54,8 @@ server.post('/api/v1.0/reminders', (req, res, next) => {
     reminder.lastNotificationSent = new Date(0);
     reminder.nextNotification = new Date(req.body.nextNotification);
     let entry = usersWithReminders[user];
-    if (!entry) { entry = usersWithReminders[user] = []; }
-    entry.push(reminder);
+    if (!entry) { entry = usersWithReminders[user] = {}; }
+    entry[reminder.id] = reminder;
     res.header("Location", `/api/v1.0/reminders/${reminder.id}`);
     res.send(201, reminder);
     next();
@@ -61,13 +63,44 @@ server.post('/api/v1.0/reminders', (req, res, next) => {
 
 server.get('/api/v1.0/reminders/:id', (req, res, next) => {
     let user = "j@s.c";
-    let reminder = usersWithReminders[user].find((r) => r.id == req.params.id);
-    res.send(reminder);
+    if (!req.params.hasOwnProperty('id') && typeof req.params.id != "string" && typeof usersWithReminders[user][req.params.id] != "object") {
+        res.send(401, "Not found");
+    } else {
+        let reminder = usersWithReminders[user][req.params.id]
+        res.send(reminder);
+    }
     next();
 });
 
 server.patch('/api/v1.0/reminders/:id', (req, res, next) => {
+    let user = "j@s.c";
+    let reminder : Reminder = null;
+    if (req.params.hasOwnProperty('id') && typeof req.params.id == "string" && typeof usersWithReminders[user][req.params.id] == "object") {
+        reminder = usersWithReminders[user][req.params.id]
+    }
+    if (!reminder) {
+        res.send(401, "Not found");
+    } else {
+        reminder = { ...reminder, ...pick(req.body, 'id', 'active', 'description', 'nextNotification', 'lastNotificationSent', 'notificationPlan') }
+        usersWithReminders[user][req.params.id] = reminder;
+        res.send(reminder);
+    }
+    next();
+});
 
+server.del('/api/v1.0/reminders/:id', (req, res, next) => {
+    let user = "j@s.c";
+    let reminder : Reminder = null;
+    if (req.params.hasOwnProperty('id') && typeof req.params.id == "string" && typeof usersWithReminders[user][req.params.id] == "object") {
+        reminder = usersWithReminders[user][req.params.id]
+    }
+    if (!reminder) {
+        res.send(401, "Not found");
+    } else {
+        delete usersWithReminders[user][req.params.id];
+        res.send(200);
+    }
+    next();
 });
 
 
@@ -116,18 +149,19 @@ function CheckForNotification(completeBy: Date, lastNotification: Date, frequenc
 
 function Nag(): boolean {
     var done = true;
-    Object.keys(usersWithReminders).forEach(key => {
-        console.log(`found user ${key} with reminders`);
-        var reminders = usersWithReminders[key];
-        reminders.forEach(reminder => {
-            if (reminder.active) { done = false; }
-            var description = reminder.description;
-            var when = reminder.nextNotification;
-            var lastNotification = reminder.lastNotificationSent;
-            console.log(`Reminder to ${description} at ${when.toLocaleString('en-US')} with last notification at ${lastNotification.toLocaleString('en-US')}`);
-            var notify = CheckForNotification(when, lastNotification, reminder.notificationPlan);
+    Object.keys(usersWithReminders).forEach(user => {
+        console.log(`Reviewing reminders: found user ${user} with reminders`);
+        var reminders = usersWithReminders[user];
+        Object.keys(reminders).forEach(id => {
+            let reminder = reminders[id];
+            console.log(`  ${reminder.active ? "Active" : "Inactive"} reminder to ${reminder.description} at ${reminder.nextNotification.toLocaleString('en-US')} with last notification at ${reminder.lastNotificationSent.toLocaleString('en-US')}`);            
+
+            if (!reminder.active) return;
+
+            done = false;
+            var notify = CheckForNotification(reminder.nextNotification, reminder.lastNotificationSent, reminder.notificationPlan);
             if (notify) {
-                console.log(reminder.description);
+                console.log(`==> sending notification to ${user}: ${reminder.description}`);
                 reminder.lastNotificationSent = new Date(Date.now());
             }
         });
@@ -135,8 +169,14 @@ function Nag(): boolean {
     return done;
 }
 
-function pick<T, K extends keyof T>(obj: T, ...keys: K[]): Pick<T, K> {
-    var result = keys.reduce((p, c) => { p[c] = obj[c]; return p; }, {} as Pick<T, K>);
+function pick<T extends object, K extends keyof T>(obj: T, ...keys: K[]): Pick<T, K> {
+    var result = keys.reduce((p, c) => {
+        if (obj.hasOwnProperty(c)) {
+            p[c] = obj[c]
+        }; return p;
+    },
+        {} as Pick<T, K>
+    );
     return result;
 }
 
@@ -148,7 +188,6 @@ var tickTock = setInterval(() => {
 }, 5000);
 
 var closeDown = setInterval(() => {
-    
     appDone();
 }, 30000);
 
