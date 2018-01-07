@@ -6,6 +6,7 @@
 import * as restify from 'restify';
 import * as uuid from 'uuid';
 import { clearInterval } from 'timers';
+import { read, readSync } from 'fs';
 
 class Reminder {
     id: string; // UUID
@@ -36,6 +37,25 @@ server.get(/\/public\/?.*/, restify.plugins.serveStatic({
     directory: __dirname
 }));
 
+function LoadReminder(reminder: Reminder, json: any, cleanup: boolean = true): Reminder {
+    reminder = { ...reminder, ...pick(json, 'id', 'active', 'description', 'nextNotification', 'lastNotificationSent', 'notificationPlan') as Reminder };
+    if (cleanup) {
+        if (typeof reminder.id != 'string') reminder.id = uuid.v4() as string;
+        if (typeof reminder.active === 'undefined') reminder.active = true;
+        if (typeof reminder.lastNotificationSent === 'number') reminder.lastNotificationSent = new Date(reminder.lastNotificationSent);
+        if (typeof reminder.lastNotificationSent === 'undefined') reminder.lastNotificationSent = new Date(0);
+        if (typeof reminder.nextNotification === 'number') reminder.nextNotification = new Date(reminder.nextNotification);
+        if (typeof reminder.notificationPlan === 'undefined') reminder.notificationPlan = 'daily';
+    }
+    if (typeof reminder.id !== "string"
+        || typeof reminder.active !== 'boolean' 
+        || typeof reminder.nextNotification !== 'object'
+        || typeof reminder.nextNotification !== 'object'
+        || typeof reminder.notificationPlan !== 'string') {
+        throw new Error("Reminder not valid");
+    }
+    return reminder;
+}
 
 server.get('/api/v1.0/reminders', (req, res, next) => {
     let user = "j@s.c";
@@ -48,13 +68,9 @@ server.get('/api/v1.0/reminders', (req, res, next) => {
 
 server.post('/api/v1.0/reminders', (req, res, next) => {
     let user = "j@s.c";
-    let reminder = pick(req.body, 'id', 'description', 'nextNotification', 'notificationPlan') as Reminder;
-    if (!reminder.id) reminder.id = uuid.v4() as string;
-    reminder.active = true;
-    reminder.lastNotificationSent = new Date(0);
-    reminder.nextNotification = new Date(req.body.nextNotification);
+    let reminder = LoadReminder({} as Reminder, req.body);
     let entry = usersWithReminders[user];
-    if (!entry) { entry = usersWithReminders[user] = {}; }
+    if (!entry) { entry = usersWithReminders[user] = {} }
     entry[reminder.id] = reminder;
     res.header("Location", `/api/v1.0/reminders/${reminder.id}`);
     res.send(201, reminder);
@@ -88,9 +104,9 @@ server.patch('/api/v1.0/reminders/:id', (req, res, next) => {
     let created = false;
     if (typeof reminder != "object") {
         created = true;
-        reminder = usersWithReminders[user][req.params.id]
+        reminder = usersWithReminders[user][req.params.id] = {} as Reminder;
     }
-    usersWithReminders[user][req.params.id] = reminder = { ...reminder, ...pick(req.body, 'id', 'active', 'description', 'nextNotification', 'lastNotificationSent', 'notificationPlan') }
+    usersWithReminders[user][req.params.id] = reminder = LoadReminder(reminder, req.body);
     res.send(created ? 201 : 200, reminder);
     next();
 });
@@ -121,14 +137,6 @@ const msecInMinute = 1000 * 60;
 const msecInHour = msecInMinute * 60;
 const msecInDay = msecInHour * 24;
 
-function DaysHoursMinutes(ms: number): { days: number, hours: number, minutes: number } {
-    var days = ms / msecInDay | 0;
-    ms = ms - days * msecInDay;
-    var hours = ms / msecInHour | 0;
-    ms = ms - hours * msecInHour;
-    var minutes = ms / msecInMinute | 0;
-    return { days: days, hours: hours, minutes: minutes };
-}
 
 function CheckForNotification(completeBy: Date, lastNotification: Date, frequency: string): boolean {
     var now = Date.now();
@@ -178,19 +186,9 @@ function Nag(): boolean {
     return done;
 }
 
-function pick<T extends object, K extends keyof T>(obj: T, ...keys: K[]): Pick<T, K> {
-    var result = keys.reduce((p, c) => {
-        if (obj.hasOwnProperty(c)) {
-            p[c] = obj[c]
-        }; return p;
-    },
-        {} as Pick<T, K>
-    );
-    return result;
-}
 
 
-var tickTock = setInterval(() => {
+var naggerTickTock = setInterval(() => {
     var done = Nag();
     console.log(`TickTock completed.  All done: ${done}`)
     if (done) { appDone(); }
@@ -202,7 +200,26 @@ var closeDown = setInterval(() => {
 
 function appDone() {
     console.log("Closing Done.");
-    clearInterval(tickTock);
+    clearInterval(naggerTickTock);
     clearInterval(closeDown);
     server.close();
+}
+
+// Utilities
+function DaysHoursMinutes(ms: number): { days: number, hours: number, minutes: number } {
+    var days = ms / msecInDay | 0;
+    ms = ms - days * msecInDay;
+    var hours = ms / msecInHour | 0;
+    ms = ms - hours * msecInHour;
+    var minutes = ms / msecInMinute | 0;
+    return { days: days, hours: hours, minutes: minutes };
+}
+
+function pick<T extends object, K extends keyof T>(obj: T, ...keys: K[]): Pick<T, K> {
+    var result = keys.reduce((p, c) => {
+        if (obj.hasOwnProperty(c)) {
+            p[c] = obj[c]
+        }; return p;
+    }, {} as Pick<T, K>);
+    return result;
 }
