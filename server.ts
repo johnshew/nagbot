@@ -63,19 +63,24 @@ server.post('/api/v1.0/reminders', (req, res, next) => {
 
 server.get('/api/v1.0/reminders/:id', (req, res, next) => {
     let user = "j@s.c";
-    if (!req.params.hasOwnProperty('id') && typeof req.params.id != "string" && typeof usersWithReminders[user][req.params.id] != "object") {
-        res.send(404, "Not found");
-    } else {
-        let reminder = usersWithReminders[user][req.params.id]
-        res.send(reminder);
+    if (!req.params.hasOwnProperty('id') && typeof req.params.id != "string") {
+        res.send(400, "id not found");
+        next();
+        return;
     }
+    if (!usersWithReminders[user].hasOwnProperty(req.params.id)) {
+        res.send(404, "Not found");
+        next();
+        return;
+    }
+    res.send(usersWithReminders[user][req.params.id]);
     next();
 });
 
 server.patch('/api/v1.0/reminders/:id', (req, res, next) => {
     let user = "j@s.c";
     if (!req.params.hasOwnProperty('id') && typeof req.params.id != "string") {
-        res.send(404, "Not found");
+        res.send(400, "id not found");
         next();
         return;
     }
@@ -92,10 +97,12 @@ server.patch('/api/v1.0/reminders/:id', (req, res, next) => {
 
 server.del('/api/v1.0/reminders/:id', (req, res, next) => {
     let user = "j@s.c";
-    let reminder: Reminder = null;
-    if (req.params.hasOwnProperty('id') && typeof req.params.id == "string" && typeof usersWithReminders[user][req.params.id] == "object") {
-        reminder = usersWithReminders[user][req.params.id]
+    if (!req.params.hasOwnProperty('id') && typeof req.params.id != "string") {
+        res.send(400, "id not found");
+        next();
+        return;
     }
+    let reminder = usersWithReminders[user][req.params.id];
     if (!reminder) {
         res.send(401, "Not found");
     } else {

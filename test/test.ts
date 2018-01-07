@@ -114,6 +114,26 @@ describe('API endpoint /api/v1.0/reminders', function () {
       });
   });
 
+    // /api/v1.0/reminders/x
+    it('should delete the updated reminder', () => {
+      return chai.request(server)
+        .del(`/api/v1.0/reminders/${ elements[0] }`)
+        .then(function (res) {
+          expect(res).to.have.status(200);
+        });
+    });
+  
+  // /api/v1.0/reminders/x
+  it('should not find the updated reminder', () => {
+    return chai.request(server)
+      .get(`/api/v1.0/reminders/${ elements[0] }`)
+      .then(function (res) {
+        throw new Error('Object exists!');
+      })
+      .catch(function(err) {
+        expect(err).to.have.status(404);
+      });
+  });
     
 });
 
