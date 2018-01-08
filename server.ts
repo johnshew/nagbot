@@ -1,15 +1,9 @@
-
-
-// import * as restify from 'restify';
-// import * as uuid from 'uuid';
-
 import * as restify from 'restify';
 import * as uuid from 'uuid';
-import { Reminder, Reminders} from './reminders';
-import * as nagger from './nag';
-
 import { clearInterval } from 'timers';
 
+import { Reminder, Reminders} from './reminders';
+import * as nagger from './nag';
 
 // Setup restify server
 export var server = restify.createServer();
@@ -101,8 +95,6 @@ server.del('/api/v1.0/reminders/:id', (req, res, next) => {
 server.listen(process.env.port || process.env.PORT || 3978, () => {
     console.log('%s listening to %s', server.name, server.url);
 });
-
-
 
 nagger.Start(()=>{});
 nagger.AutoStop(30000,()=>{});
