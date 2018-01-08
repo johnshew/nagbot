@@ -5,6 +5,9 @@ node_js:
 before_script:
   - npm run build
 
+before_install:
+  - echo mongo-password
+
 cache:
   directories:
     - "node_modules"
