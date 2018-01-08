@@ -12,8 +12,7 @@ import { clearInterval } from 'timers';
 
 
 // Setup restify server
-var server = restify.createServer();
-export function GetServer(): restify.Server { return server; }
+export var server = restify.createServer();
 
 server.use(restify.plugins.bodyParser());
 server.use(restify.plugins.queryParser())

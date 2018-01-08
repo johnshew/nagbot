@@ -10,7 +10,7 @@ chai.use(require('chai-http'));
 
 import * as app from '../server'; // Our app
 
-var server = app.GetServer();
+var server = app.server;
 
 describe('API endpoint /api/v1.0/reminders', function () {
   this.timeout(5000); // How long to wait for a response (ms)
