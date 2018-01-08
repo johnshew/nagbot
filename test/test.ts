@@ -140,8 +140,8 @@ describe('API endpoint /api/v1.0/reminders', function () {
 import * as mongo from 'mongodb';
 import { MongoClientOptions } from 'mongodb';
 var mongoClient = mongo.MongoClient;
-var mongoPassword = process.env["mongo-password"];
-if (!mongoPassword) throw new Error('Need mongo-password env variable');
+var mongoPassword = process.env["mongopassword"];
+if (!mongoPassword) throw new Error('Need mongopassword env variable');
 
 describe('Mongo', function () {
 
