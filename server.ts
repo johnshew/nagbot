@@ -48,7 +48,7 @@ function LoadReminder(reminder: Reminder, json: any, cleanup: boolean = true): R
         if (typeof reminder.notificationPlan === 'undefined') reminder.notificationPlan = 'daily';
     }
     if (typeof reminder.id !== "string"
-        || typeof reminder.active !== 'boolean' 
+        || typeof reminder.active !== 'boolean'
         || typeof reminder.nextNotification !== 'object'
         || typeof reminder.nextNotification !== 'object'
         || typeof reminder.notificationPlan !== 'string') {
@@ -223,3 +223,5 @@ function pick<T extends object, K extends keyof T>(obj: T, ...keys: K[]): Pick<T
     }, {} as Pick<T, K>);
     return result;
 }
+
+

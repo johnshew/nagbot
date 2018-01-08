@@ -15,8 +15,8 @@ var server = app.GetServer();
 describe('API endpoint /api/v1.0/reminders', function () {
   this.timeout(5000); // How long to wait for a response (ms)
 
-  before(function() { });
-  after(function() { });
+  before(function () { });
+  after(function () { });
 
   // /api/v1.0/rem9inders GET 
   it('should return reminders', () => {
@@ -25,7 +25,7 @@ describe('API endpoint /api/v1.0/reminders', function () {
       .then(function (res) {
         expect(res).to.have.status(200);
         expect(res).to.be.json;
-        expect(res.body).to.be.an('array');        
+        expect(res.body).to.be.an('array');
       });
   });
 
@@ -44,7 +44,7 @@ describe('API endpoint /api/v1.0/reminders', function () {
         expect(res).to.be.json;
         expect(res).to.have.header('location');
         expect(res.body).to.be.an('object');
-        expect(res.body).to.have.property('id');        
+        expect(res.body).to.have.property('id');
       });
   });
 
@@ -77,36 +77,25 @@ describe('API endpoint /api/v1.0/reminders', function () {
         expect(res).to.have.status(200);
         expect(res).to.be.json;
         expect(res.body).to.be.an('array');
-        (res.body as any[]).forEach((item) => reminders.push(item.id));        
+        (res.body as any[]).forEach((item) => reminders.push(item.id));
       });
   });
 
   // /api/v1.0/reminders/x
   it('should return the one of the existing reminders', () => {
     return chai.request(server)
-      .get(`/api/v1.0/reminders/${ reminders[0] }`)
+      .get(`/api/v1.0/reminders/${reminders[0]}`)
       .then(function (res) {
         expect(res).to.have.status(200);
-        expect(res).to.be.json;        
+        expect(res).to.be.json;
       });
   });
-  
-    // /api/v1.0/reminders/x
-    it('should update one of the existing reminders', () => {
-      return chai.request(server)
-        .patch(`/api/v1.0/reminders/${ reminders[0] }`)
-        .send({ active : false })
-        .then(function (res) {
-          expect(res).to.have.status(200);
-          expect(res).to.be.json;
-          expect(res.body).to.haveOwnProperty('active').equal(false);
-        });
-    });
-    
+
   // /api/v1.0/reminders/x
-  it('should return the updated reminder', () => {
+  it('should update one of the existing reminders', () => {
     return chai.request(server)
-      .get(`/api/v1.0/reminders/${ reminders[0] }`)
+      .patch(`/api/v1.0/reminders/${reminders[0]}`)
+      .send({ active: false })
       .then(function (res) {
         expect(res).to.have.status(200);
         expect(res).to.be.json;
@@ -114,26 +103,78 @@ describe('API endpoint /api/v1.0/reminders', function () {
       });
   });
 
-    // /api/v1.0/reminders/x
-    it('should delete the updated reminder', () => {
-      return chai.request(server)
-        .del(`/api/v1.0/reminders/${ reminders[0] }`)
-        .then(function (res) {
-          expect(res).to.have.status(200);
-        });
-    });
-  
+  // /api/v1.0/reminders/x
+  it('should return the updated reminder', () => {
+    return chai.request(server)
+      .get(`/api/v1.0/reminders/${reminders[0]}`)
+      .then(function (res) {
+        expect(res).to.have.status(200);
+        expect(res).to.be.json;
+        expect(res.body).to.haveOwnProperty('active').equal(false);
+      });
+  });
+
+  // /api/v1.0/reminders/x
+  it('should delete the updated reminder', () => {
+    return chai.request(server)
+      .del(`/api/v1.0/reminders/${reminders[0]}`)
+      .then(function (res) {
+        expect(res).to.have.status(200);
+      });
+  });
+
   // /api/v1.0/reminders/x
   it('should not find the updated reminder', () => {
     return chai.request(server)
-      .get(`/api/v1.0/reminders/${ reminders[0] }`)
+      .get(`/api/v1.0/reminders/${reminders[0]}`)
       .then(function (res) {
         throw new Error('Object exists!');
       })
-      .catch(function(err) {
+      .catch(function (err) {
         expect(err).to.have.status(404);
       });
   });
-    
+
 });
 
+import * as mongo from 'mongodb';
+import { MongoClientOptions } from 'mongodb';
+var mongoClient = mongo.MongoClient;
+var mongoPassword = 'xyzzy'
+
+describe('Mongo', function () {
+
+  it('Connect to mongo', function () {
+
+    mongoClient.connect(`mongodb://shew-mongo:${encodeURIComponent(mongoPassword)}@shew-mongo.documents.azure.com:10255/?ssl=true&replicaSet=globaldb`,
+      function (err, client) {
+        if (err) throw err;
+        console.log('mongo connected');
+        var db = client.db("Test");
+        var insertDocument = function (db, callback) {
+          db.collection('families').insertOne({
+            "id": "AndersenFamily",
+            "lastName": "Andersen",
+            "parents": [
+              { "firstName": "Thomas" },
+              { "firstName": "Mary Kay" }
+            ],
+            "children": [
+              { "firstName": "John", "gender": "male", "grade": 7 }
+            ],
+            "pets": [
+              { "givenName": "Fluffy" }
+            ],
+            "address": { "country": "USA", "state": "WA", "city": "Seattle" }
+          }, function (err, result) {
+            if (err) throw err;
+            console.log("Inserted a document into the families collection.");
+            callback();
+          });
+        };
+        insertDocument(db, () => console.log('mongo done'));
+      });
+      return true;
+  });
+
+});
