@@ -145,37 +145,49 @@ if (!mongoPassword) throw new Error('Need mongo-password env variable');
 
 describe('Mongo', function () {
 
-  it('Connect to mongo', function () {
+  it('Connect to mongo', (done) => {
 
-    mongoClient.connect(`mongodb://shew-mongo:${encodeURIComponent(mongoPassword)}@shew-mongo.documents.azure.com:10255/?ssl=true&replicaSet=globaldb`,
-      function (err, client) {
-        if (err) throw err;
-        console.log('mongo connected');
-        var db = client.db("Test");
-        var insertDocument = function (db, callback) {
-          db.collection('families').insertOne({
-            "id": "AndersenFamily",
-            "lastName": "Andersen",
-            "parents": [
-              { "firstName": "Thomas" },
-              { "firstName": "Mary Kay" }
-            ],
-            "children": [
-              { "firstName": "John", "gender": "male", "grade": 7 }
-            ],
-            "pets": [
-              { "givenName": "Fluffy" }
-            ],
-            "address": { "country": "USA", "state": "WA", "city": "Seattle" }
-          }, function (err, result) {
-            if (err) throw err;
-            console.log("Inserted a document into the families collection.");
-            callback();
-          });
-        };
-        insertDocument(db, () => console.log('mongo done'));
-      });
-      return true;
+    mongoClient.connect(`mongodb://shew-mongo:${encodeURIComponent(mongoPassword)}@shew-mongo.documents.azure.com:10255/?ssl=true&replicaSet=globaldb`, (err, client) => {
+
+      if (err) throw err;
+
+      console.log('mongo connected');
+      var db = client.db("Test");
+
+      var insertDocument = (db, callback) => {
+        db.collection('families').insertOne({
+          "id": "AndersenFamily",
+          "lastName": "Andersen",
+          "parents": [
+            { "firstName": "Thomas" },
+            { "firstName": "Mary Kay" }
+          ],
+          "children": [
+            { "firstName": "John", "gender": "male", "grade": 7 }
+          ],
+          "pets": [
+            { "givenName": "Fluffy" }
+          ],
+          "address": { "country": "USA", "state": "WA", "city": "Seattle" }
+        }, 
+        (err, result) => {
+          if (err) throw err;
+          console.log("Inserted a document into the families collection.");
+          callback();
+        });
+      };
+
+      try {
+        insertDocument(db, () => {
+          console.log('mongo done');
+          done();
+        });
+      }
+      catch {
+        done();
+      }
+    });
   });
-
 });
+
+
