@@ -16,7 +16,9 @@ describe('API endpoint /api/v1.0/reminders', function () {
   this.timeout(5000); // How long to wait for a response (ms)
 
   before(function () { });
-  after(function () { });
+  after(function () { 
+    server.close();
+  });
 
   // /api/v1.0/rem9inders GET 
   it('should return reminders', () => {
@@ -169,21 +171,23 @@ describe('Mongo', function () {
             { "givenName": "Fluffy" }
           ],
           "address": { "country": "USA", "state": "WA", "city": "Seattle" }
-        }, 
-        (err, result) => {
-          if (err) throw err;
-          console.log("Inserted a document into the families collection.");
-          callback();
-        });
+        },
+          (err, result) => {
+            if (err) throw err;
+            console.log("Inserted a document into the families collection.");
+            callback();
+          });
       };
 
       try {
         insertDocument(db, () => {
           console.log('mongo done');
+          client.close(()=>console.log('mongo closed'));
           done();
         });
       }
       catch {
+        client.close(()=>console.log('mongo closed'));
         done();
       }
     });
