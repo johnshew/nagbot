@@ -46,11 +46,14 @@ export var reminderStore: {
 
 
 export class ReminderStore {
-    public find(user: string, id: string = null): Reminder[] {
-        if (id) {
-            let result = reminderStore[user][id];
-            return (result ? [result] : []);
+    public get(id : string)  : Reminder | undefined {
+        for (const user in reminderStore) {
+            if (typeof reminderStore[user][id] !== 'undefined') { 
+                return (reminderStore[user][id]); }
         }
+        return undefined;
+    }
+    public find(user: string): Reminder[]  {      
         if (typeof reminderStore[user] === 'undefined') { reminderStore[user] = {}; }
         let reminderArray = Object.keys(reminderStore[user]).reduce((prev, key) => { prev.push(reminderStore[user][key]); return prev }, []);
         return reminderArray;

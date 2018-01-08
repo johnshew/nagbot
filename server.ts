@@ -2,7 +2,7 @@ import * as restify from 'restify';
 import * as uuid from 'uuid';
 import { clearInterval } from 'timers';
 
-import { Reminder, Reminders} from './reminders';
+import { Reminder, Reminders } from './reminders';
 import * as nagger from './nag';
 
 // Setup restify server
@@ -43,13 +43,12 @@ server.get('/api/v1.0/reminders/:id', (req, res, next) => {
         next();
         return;
     }
-    let result = Reminders.find(user,req.params.id);
-    if (result.length === 0) {
+    let result = Reminders.get(req.params.id);
+    if (!result) {
         res.send(404, "Not found.");
-        next();
-        return;
+    } else {
+        res.send(result);
     }
-    res.send(result[0]);
     next();
 });
 
@@ -60,17 +59,20 @@ server.patch('/api/v1.0/reminders/:id', (req, res, next) => {
         next();
         return;
     }
-    let reminder = Reminders.find(user, req.params.id);
+    let reminder = Reminders.get(req.params.id);
     let created = false;
-    if (reminder.length === 0) {
+    if (!reminder) {
         created = true;
-        let result = new Reminder(req.body, true);
-        Reminders.update(result);
-        res.send(201,result);
+        let result = null;
+        try {
+            reminder = new Reminder(req.body, true);
+        }
+        catch { }
+    } else {
+        reminder.update(req.body);
     }
-    reminder[0].update(req.body);
-    Reminders.update(reminder[0]);
-    res.send(200,reminder[0]);
+    Reminders.update(reminder);
+    res.send(created ? 201 : 200, reminder);
     next();
 });
 
@@ -81,11 +83,11 @@ server.del('/api/v1.0/reminders/:id', (req, res, next) => {
         next();
         return;
     }
-    let reminder = Reminders.find(user,req.params.id);
-    if (reminder.length === 0) {
-        res.send(401, "Not found");
+    let reminder = Reminders.get(req.params.id);
+    if (!reminder) {
+        res.send(401, "Not found")
     } else {
-        Reminders.delete(reminder[0]);
+        Reminders.delete(reminder);
         res.send(200);
     }
     next();
@@ -96,5 +98,5 @@ server.listen(process.env.port || process.env.PORT || 3978, () => {
     console.log('%s listening to %s', server.name, server.url);
 });
 
-nagger.Start(()=>{});
-nagger.AutoStop(30000,()=>{});
+nagger.Start(() => { });
+nagger.AutoStop(30000, () => { });
