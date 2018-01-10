@@ -16,9 +16,7 @@ describe('API endpoint /api/v1.0/reminders', function () {
   this.timeout(5000); // How long to wait for a response (ms)
 
   before(function () { });
-  after(function () { 
-    server.close();
-  });
+  after(function () { });
 
   // /api/v1.0/rem9inders GET 
   it('should return reminders', () => {
@@ -84,7 +82,7 @@ describe('API endpoint /api/v1.0/reminders', function () {
   });
 
   // /api/v1.0/reminders/x
-  it('should return the one of the existing reminders', () => {
+  it('should return one of the existing reminders', () => {
     return chai.request(server)
       .get(`/api/v1.0/reminders/${reminders[0]}`)
       .then(function (res) {
@@ -150,48 +148,10 @@ describe('Mongo', function () {
   it('Connect to mongo', (done) => {
 
     mongoClient.connect(`mongodb://shew-mongo:${encodeURIComponent(mongoPassword)}@shew-mongo.documents.azure.com:10255/?ssl=true&replicaSet=globaldb`, (err, client) => {
-
       if (err) throw err;
-
       console.log('mongo connected');
-      var db = client.db("Test");
-
-      var insertDocument = (db, callback) => {
-        db.collection('families').insertOne({
-          "id": "AndersenFamily",
-          "lastName": "Andersen",
-          "parents": [
-            { "firstName": "Thomas" },
-            { "firstName": "Mary Kay" }
-          ],
-          "children": [
-            { "firstName": "John", "gender": "male", "grade": 7 }
-          ],
-          "pets": [
-            { "givenName": "Fluffy" }
-          ],
-          "address": { "country": "USA", "state": "WA", "city": "Seattle" }
-        },
-          (err, result) => {
-            if (err) throw err;
-            console.log("Inserted a document into the families collection.");
-            callback();
-          });
-      };
-
-      try {
-        insertDocument(db, () => {
-          console.log('mongo done');
-          client.close(()=>console.log('mongo closed'));
-          done();
-        });
-      }
-      catch {
-        client.close(()=>console.log('mongo closed'));
-        done();
-      }
+      client.close(true, ()=>{ console.log("Mocha mongo client closed")});
+      done();
     });
   });
 });
-
-

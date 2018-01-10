@@ -1,5 +1,11 @@
 import * as uuid from 'uuid';
 
+import * as mongo from 'mongodb';
+var MongoClient = mongo.MongoClient;
+var mongoPassword = process.env["mongopassword"];
+if (!mongoPassword) throw new Error('Need mongopassword env variable');
+
+
 export class Reminder {
     id: string; // UUID
     active: boolean;
@@ -34,55 +40,139 @@ export class Reminder {
         return reminder;
     }
 
-    public update(json : any) : Reminder {
-        Reminder.LoadReminder(this,json);
+    public update(json: any): Reminder {
+        Reminder.LoadReminder(this, json);
         return this;
     }
 }
 
-export var reminderStore: {
-    [userId: string]: { [id: string]: Reminder }
-} = {};
 
+class ReminderDB {
+    client: Promise<mongo.Db>;
+    testDb: Promise<mongo.Db>;
+    ready: Promise<boolean>;
+    constructor() {
+        this.client = new Promise<mongo.Db>(async (resolve, reject) => {
+            new MongoClient().connect(`mongodb://shew-mongo:${encodeURIComponent(mongoPassword)}@shew-mongo.documents.azure.com:10255/?ssl=true&replicaSet=globaldb`,
+                (err, client) => {
+                    if (err) {
+                        console.log('Unable to connect to mongo');
+                        reject(err);
+                    };
+                    console.log('mongo connected');
+                    resolve(client);
+                });
+        });
+        this.testDb = new Promise<mongo.Db>(async (resolve, reject) => {
+            let client = await this.client
+            let db = client.db('Test');
+            resolve(db);
+        });
+        this.ready = new Promise<boolean>(async (resolve, reject) => {
+            let db = await this.testDb;
+            db.createCollection('reminders', (collection) => {
+                resolve(true);
+            });
+        });
+    }
+    public async get(id: string): Promise<Reminder> {
+        let db = await this.testDb;
+        let result = await db.collection('reminders').findOne({ 'id': id });
+        let reminder = (result) ? new Reminder(result) : null;
+        return reminder;
+    }
 
-export class ReminderStore {
-    public get(id : string)  : Reminder | undefined {
-        for (const user in reminderStore) {
-            if (typeof reminderStore[user][id] !== 'undefined') { 
-                return (reminderStore[user][id]); }
+    public async find(user: string): Promise<Reminder[]> {
+        let db = await this.testDb;
+        let result = await db.collection('reminders').find({ 'user': user }).toArray();
+        let reminders: Reminder[] = [];
+        result.forEach((reminder) => reminders.push(new Reminder(reminder)));
+        return reminders;
+    }
+
+    public async update(reminder: Reminder) {
+        let db = await this.testDb;
+        return db.collection('reminders').updateOne({ 'id': reminder.id }, { $set: reminder }, { upsert: true });
+    }
+
+    public async delete(reminder: Reminder) {
+        let db = await this.testDb;
+        return db.collection('reminders').deleteOne({ 'id': reminder.id });
+    }
+
+    public async forEach(per: (reminder: Reminder) => void) {
+        let db = await this.testDb;
+        db.collection('reminders').find().forEach((reminder) => {
+            per(new Reminder(reminder));
+        }, () => {
+            console.log("DB findAll complete");
+        });
+    }
+
+    public async close() {
+        let client = await this.client;
+        client.close(true, () => {
+            console.log('closing client');
+        });
+        let testDb = await this.testDb;
+        testDb.close(true, () => {
+            console.log('closing Test');
+        });
+    }
+}
+
+class ReminderStore {
+    store: {
+        [userId: string]: { [id: string]: Reminder }
+    } = {};
+    db = null;
+
+    constructor() { }
+
+    public get(id: string): Reminder | undefined {
+        for (const user in this.store) {
+            if (typeof this.store[user][id] !== 'undefined') {
+                return (this.store[user][id]);
+            }
         }
         return undefined;
     }
-    public find(user: string): Reminder[]  {      
-        if (typeof reminderStore[user] === 'undefined') { reminderStore[user] = {}; }
-        let reminderArray = Object.keys(reminderStore[user]).reduce((prev, key) => { prev.push(reminderStore[user][key]); return prev }, []);
+    public find(user: string): Reminder[] {
+        if (typeof this.store[user] === 'undefined') { this.store[user] = {}; }
+        let reminderArray = Object.keys(this.store[user]).reduce((prev, key) => { prev.push(this.store[user][key]); return prev }, []);
         return reminderArray;
     }
     public update(reminder: Reminder) {
-        if (typeof reminderStore[reminder.user] === undefined) { reminderStore[reminder.user] = {} };
-        reminderStore[reminder.user][reminder.id] = reminder;
+        if (typeof this.store[reminder.user] === undefined) { this.store[reminder.user] = {} };
+        this.store[reminder.user][reminder.id] = reminder;
     }
     public delete(reminder: Reminder) {
-        if (reminderStore[reminder.user] && reminderStore[reminder.user][reminder.id]) {
-            delete reminderStore[reminder.user][reminder.id];
+        if (this.store[reminder.user] && this.store[reminder.user][reminder.id]) {
+            delete this.store[reminder.user][reminder.id];
         }
     }
-    public forEach(i : (reminder : Reminder) => void) {
-        Object.keys(reminderStore).forEach((user) => {
-            Object.keys(reminderStore[user]).forEach((id) => {
-                i(reminderStore[user][id]);
+    public forEach(per: (reminder: Reminder) => void) {
+        Object.keys(this.store).forEach((user) => {
+            Object.keys(this.store[user]).forEach((id) => {
+                per(this.store[user][id]);
             });
         });
     }
 }
 
-export var Reminders = new ReminderStore();
+export var RemindersStoreX = new ReminderStore();
+export var RemindersDB = new ReminderDB();
 
 function pick<T extends object, K extends keyof T>(obj: T, ...keys: K[]): Pick<T, K> {
+    if (typeof obj !== 'object') { console.log("not an object"); throw new Error("Pick error"); }
     var result = keys.reduce((p, c) => {
-        if (obj.hasOwnProperty(c)) {
-            p[c] = obj[c]
-        }; return p;
+        try {
+            if (obj.hasOwnProperty(c)) {
+                p[c] = obj[c]
+            }; return p;
+        } catch (x) {
+            console.log("something is off");
+        }
     }, {} as Pick<T, K>);
     return result;
 }

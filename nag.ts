@@ -1,21 +1,18 @@
-import { Reminders } from './reminders';
+import { RemindersDB } from './reminders';
 
 function Nag(): boolean {
     var done = true;
-    Reminders.forEach((reminder) => {
-
-            console.log(`  ${reminder.active ? "Active" : "Inactive"}  reminder for ${reminder.user} to ${reminder.description} at ${reminder.nextNotification.toLocaleString('en-US')} with last notification at ${reminder.lastNotificationSent.toLocaleString('en-US')}`);
-
+    RemindersDB.forEach((reminder) => {
+            console.log(`  ${reminder.active ? "Active" : "Inactive"} reminder for ${reminder.user} to ${reminder.description} at ${reminder.nextNotification.toLocaleString('en-US')} with last notification at ${reminder.lastNotificationSent.toLocaleString('en-US')}`);
             if (!reminder.active) return;
-
             done = false;
             var notify = CheckForNotification(reminder.nextNotification, reminder.lastNotificationSent, reminder.notificationPlan);
             if (notify) {
                 console.log(`  ==> sending notification to ${reminder.user}: ${reminder.description}`);
                 reminder.lastNotificationSent = new Date(Date.now());
+                // !TODO update database
             }
         });
-        
     return done;
 }
 
@@ -52,8 +49,7 @@ export function Start(callback: () => void) {
     naggerTickTock = setInterval(() => {
         var done = Nag();
         console.log(`TickTock completed.  All done: ${done}`)
-        if (done) { Stop(callback); }
-    }, 5000);
+    }, 6000);
 }
 
 export function AutoStop(time : number, callback: () => void) {
@@ -64,7 +60,7 @@ export function AutoStop(time : number, callback: () => void) {
 }
 
 export function Stop(callback: () => void) {
-    console.log("Closing.");
+    console.log("Closing timers.");
     clearInterval(naggerTickTock);
     clearInterval(closeDown);
     callback();
