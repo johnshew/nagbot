@@ -9,8 +9,9 @@ const expect = chai.expect;
 chai.use(require('chai-http'));
 
 import * as app from '../server'; // Our app
-
+import * as reminders from '../reminders';
 var server = app.server;
+var remindersDb = reminders.RemindersDB;
 
 describe('API endpoint /api/v1.0/reminders', function () {
   this.timeout(5000); // How long to wait for a response (ms)
@@ -18,14 +19,29 @@ describe('API endpoint /api/v1.0/reminders', function () {
   before(function () { });
   after(function () { });
 
+  
+  it ('should be ready to talk to the database', () => {
+    return remindersDb.ready
+    .then((ready) => {
+      expect(ready).to.be.true;
+    });
+  });
+
+  it ('should clear the database', () => {
+    return remindersDb.deleteAll()
+    .then((operation)=>{
+      expect(operation.result.ok).to.exist.and.be.equal(1);  // 1 means command executed properly.
+    })
+  });
+
   // /api/v1.0/rem9inders GET 
-  it('should return reminders', () => {
+  it('should return 0 reminders', () => {
     return chai.request(server)
       .get('/api/v1.0/reminders')
-      .then(function (res) {
+      .then( (res) => {
         expect(res).to.have.status(200);
         expect(res).to.be.json;
-        expect(res.body).to.be.an('array');
+        expect(res.body).to.be.an('array').and.length(0);
       });
   });
 
@@ -139,6 +155,7 @@ describe('API endpoint /api/v1.0/reminders', function () {
 
 import * as mongo from 'mongodb';
 import { MongoClientOptions } from 'mongodb';
+import { Reminder } from '../reminders';
 var mongoClient = mongo.MongoClient;
 var mongoPassword = process.env["mongopassword"];
 if (!mongoPassword) throw new Error('Need mongopassword env variable');

@@ -2,7 +2,7 @@ import { RemindersDB } from './reminders';
 
 function Nag(): boolean {
     var done = true;
-    RemindersDB.forEach((reminder) => {
+    RemindersDB.forEach(async (reminder) => {
             console.log(`  ${reminder.active ? "Active" : "Inactive"} reminder for ${reminder.user} to ${reminder.description} at ${reminder.nextNotification.toLocaleString('en-US')} with last notification at ${reminder.lastNotificationSent.toLocaleString('en-US')}`);
             if (!reminder.active) return;
             done = false;
@@ -10,7 +10,8 @@ function Nag(): boolean {
             if (notify) {
                 console.log(`  ==> sending notification to ${reminder.user}: ${reminder.description}`);
                 reminder.lastNotificationSent = new Date(Date.now());
-                // !TODO update database
+                let operationStatus = await RemindersDB.update(reminder);
+                if (operationStatus.result.ok !== 1) throw new Error('Problem updating reminder');      
             }
         });
     return done;
@@ -46,7 +47,7 @@ var closeDown = null;
 
 export function Start(callback: () => void) {
     if (naggerTickTock) return;
-    naggerTickTock = setInterval(() => {
+    naggerTickTock = setInterval(async () => {
         var done = Nag();
         console.log(`TickTock completed.  All done: ${done}`)
     }, 6000);

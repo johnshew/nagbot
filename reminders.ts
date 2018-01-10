@@ -107,7 +107,14 @@ class ReminderDB {
         }, () => {
             console.log("DB findAll complete");
         });
+        return;
     }
+
+    public async deleteAll() {    
+        let db = await this.testDb;
+        return db.collection('reminders').deleteMany({});
+    }
+
 
     public async close() {
         let client = await this.client;
