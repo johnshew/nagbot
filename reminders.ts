@@ -1,7 +1,8 @@
 import * as uuid from 'uuid';
 
 import * as mongo from 'mongodb';
-var MongoClient = mongo.MongoClient;
+import { MongoClient } from 'mongodb';
+var mongoClient = mongo.MongoClient
 var mongoPassword = process.env["mongopassword"];
 if (!mongoPassword) throw new Error('Need mongopassword env variable');
 
@@ -48,33 +49,35 @@ export class Reminder {
 
 
 class ReminderDB {
-    client: Promise<mongo.Db>;
+    client: Promise<mongo.MongoClient>;
     testDb: Promise<mongo.Db>;
     ready: Promise<boolean>;
     constructor() {
-        this.client = new Promise<mongo.Db>(async (resolve, reject) => {
-            new MongoClient().connect(`mongodb://shew-mongo:${encodeURIComponent(mongoPassword)}@shew-mongo.documents.azure.com:10255/?ssl=true&replicaSet=globaldb`,
-                (err, client) => {
-                    if (err) {
-                        console.log('Unable to connect to mongo');
-                        reject(err);
-                    };
+        this.client = new Promise<mongo.MongoClient>(async (resolve, reject) => {
+            MongoClient.connect(`mongodb://shew-mongo:${encodeURIComponent(mongoPassword)}@shew-mongo.documents.azure.com:10255/?ssl=true&replicaSet=globaldb`)
+                .then((client) => {
                     console.log('mongo connected');
                     resolve(client);
+                })
+                .catch((reason) => {
+                    console.log('Unable to connect to mongo');
+                    reject(reason);
                 });
-        });
-        this.testDb = new Promise<mongo.Db>(async (resolve, reject) => {
-            let client = await this.client
-            let db = client.db('Test');
-            resolve(db);
-        });
-        this.ready = new Promise<boolean>(async (resolve, reject) => {
-            let db = await this.testDb;
-            db.createCollection('reminders', (collection) => {
-                resolve(true);
+            await this.client;
+            this.testDb = new Promise<mongo.Db>(async (resolve, reject) => {
+                let client = await this.client
+                let db = client.db('Test');
+                resolve(db);
+            });
+            this.ready = new Promise<boolean>(async (resolve, reject) => {
+                let db = await this.testDb;
+                db.createCollection('reminders', (collection) => {
+                    resolve(true);
+                });
             });
         });
     }
+
     public async get(id: string): Promise<Reminder> {
         let db = await this.testDb;
         let result = await db.collection('reminders').findOne({ 'id': id });
@@ -110,7 +113,7 @@ class ReminderDB {
         return;
     }
 
-    public async deleteAll() {    
+    public async deleteAll() {
         let db = await this.testDb;
         return db.collection('reminders').deleteMany({});
     }
@@ -120,10 +123,6 @@ class ReminderDB {
         let client = await this.client;
         client.close(true, () => {
             console.log('closing client');
-        });
-        let testDb = await this.testDb;
-        testDb.close(true, () => {
-            console.log('closing Test');
         });
     }
 }
