@@ -2,10 +2,10 @@
   "name": "simple",
   "version": "1.0.0",
   "description": "Hello World",
-  "main": "server.js",
+  "main": "app.js",
   "scripts": {
     "test": "mocha --recursive lib/test",
-    "start": "node ./lib/server.js",
+    "start": "node ./lib/app.js",
     "build": "tsc -p .",
     "watch": "tsc -p . --watch"
   },

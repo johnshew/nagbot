@@ -126,7 +126,6 @@ class RemindersMongo implements RemindersStore {
         throw new Error('delete all failed.');
     }
 
-
     public async close() {
         if (!this.ready) await this.initialized;
         let client = await this.client;
@@ -153,26 +152,31 @@ class RemindersInMem implements RemindersStore {
         }
         return undefined;
     }
+
     public async find(user: string): Promise<Reminder[]> {
         if (typeof this.store[user] === 'undefined') { this.store[user] = {}; }
         let reminderArray = Object.keys(this.store[user]).reduce((prev, key) => { prev.push(this.store[user][key]); return prev }, []);
         return reminderArray;
     }
+
     public async update(reminder: Reminder) : Promise<void>{
         if (typeof this.store[reminder.user] === undefined) { this.store[reminder.user] = {} };
         this.store[reminder.user][reminder.id] = reminder;
         return;
     }
+
     public async delete(reminder: Reminder) : Promise<void> {
         if (this.store[reminder.user] && this.store[reminder.user][reminder.id]) {
             delete this.store[reminder.user][reminder.id];
         }
         return;
     }
+
     public async deleteAll() : Promise<void> {
         Object.keys(this.store).forEach((user) => delete this.store[user] );
         return;
     }
+
     public async forEach(per: (reminder: Reminder) => void) : Promise<void> {
         Object.keys(this.store).forEach((user) => {
             Object.keys(this.store[user]).forEach((id) => {
@@ -181,11 +185,11 @@ class RemindersInMem implements RemindersStore {
         });
         return;
     }
+
     public async close() {
         return;
     }
 }
-
 
 export var remindersInMem = new RemindersInMem();
 export var remindersMongo = new RemindersMongo(`mongodb://shew-mongo:${encodeURIComponent(mongoPassword)}@shew-mongo.documents.azure.com:10255/?ssl=true&replicaSet=globaldb`, 'Test');

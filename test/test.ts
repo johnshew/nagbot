@@ -8,10 +8,11 @@ import * as uuid from 'uuid';
 const expect = chai.expect;
 chai.use(require('chai-http'));
 
-import * as app from '../server'; // Our app
 import * as reminders from '../reminders';
-var server = app.server;
 var remindersStore = reminders.remindersStore;
+
+import * as app from '../app'; // Our app
+var server = app.server;
 
 describe('API endpoint /api/v1.0/reminders', function () {
   this.timeout(5000); // How long to wait for a response (ms)

@@ -19,6 +19,8 @@ function Nag(): boolean {
 function CheckForNotification(completeBy: Date, lastNotification: Date, frequency: string): boolean {
     var now = Date.now();
     var msToComplete = completeBy.getTime() - now;
+    let [ days, hours, minutes ] = DaysHoursMinutes(msToComplete);
+    console.log(`Completes in ${days} days, ${hours} hours, ${minutes} minutes`)
     if (msToComplete < 0) return true;
 
     let msSince = now - lastNotification.getTime();
@@ -44,19 +46,19 @@ function CheckForNotification(completeBy: Date, lastNotification: Date, frequenc
 var naggerTickTock = null;
 var closeDown = null;
 
-export function Start(callback: () => void) {
+export function Start(msec : number = 5000) {
     if (naggerTickTock) return;
     naggerTickTock = setInterval(async () => {
         var done = Nag();
         console.log(`TickTock completed.  All done: ${done}`)
-    }, 6000);
+    }, msec);
 }
 
-export function AutoStop(time : number, callback: () => void) {
+export function AutoStop(msec : number, callback: () => void)  {
     closeDown = setInterval(() => {
         console.log('Auto stopping');
         Stop(callback);
-    }, time);
+    }, msec);
 }
 
 export function Stop(callback: () => void) {
@@ -72,11 +74,11 @@ const msecInDay = msecInHour * 24;
 
 
 // Utilities
-function DaysHoursMinutes(ms: number): { days: number, hours: number, minutes: number } {
+function DaysHoursMinutes(ms: number): [ number, number, number] {
     var days = ms / msecInDay | 0;
     ms = ms - days * msecInDay;
     var hours = ms / msecInHour | 0;
     ms = ms - hours * msecInHour;
     var minutes = ms / msecInMinute | 0;
-    return { days: days, hours: hours, minutes: minutes };
+    return [ days,  hours, minutes];
 }
