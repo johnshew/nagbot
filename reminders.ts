@@ -189,7 +189,7 @@ class RemindersInMem implements RemindersStore {
 
 export var remindersInMem = new RemindersInMem();
 export var remindersMongo = new RemindersMongo(`mongodb://shew-mongo:${encodeURIComponent(mongoPassword)}@shew-mongo.documents.azure.com:10255/?ssl=true&replicaSet=globaldb`, 'Test');
-export var remindersStore = remindersInMem;
+export var remindersStore = remindersMongo;
 
 export function closeAll() {
     remindersInMem.close();
