@@ -5,7 +5,7 @@ import * as reminders from './reminders';
 var remindersStore = reminders.remindersStore;
 
 // Setup restify server
-export function create(config : any, callback : ()=>void) {
+export function create(config: any, callback: () => void) {
 
     let server = restify.createServer();
 
@@ -39,7 +39,7 @@ export function create(config : any, callback : ()=>void) {
 
     server.get('/api/v1.0/reminders/:id', async (req, res, next) => {
         let user = "j@s.c";
-        if (!req.params.hasOwnProperty('id') && typeof req.params.id != "string") {
+        if (!req.params.hasOwnProperty('id') || typeof req.params.id != "string") {
             res.send(400, "id not found");
             next();
             return;
@@ -65,10 +65,7 @@ export function create(config : any, callback : ()=>void) {
         if (!reminder) {
             created = true;
             let result = null;
-            try {
-                reminder = new reminders.Reminder(req.body, true);
-            }
-            catch { }
+            reminder = new reminders.Reminder(req.body, true);
         } else {
             reminder.update(req.body);
         }
@@ -95,7 +92,7 @@ export function create(config : any, callback : ()=>void) {
     });
 
 
-    server.listen(config,()=>{
+    server.listen(config, () => {
         console.log(`Server listening on ${server.url}`);
     });
 

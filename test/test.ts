@@ -83,23 +83,24 @@ describe('API endpoint /api/v1.0/reminders', function () {
       });
   });
 
-  var reminders = [];
+  var remindersTracker : string[] = [];
+
   // /api/v1.0/reminders GET 
-  it('should return the list of reminders', () => {
+  it('should return an array of reminders', () => {
     return chai.request(server)
       .get('/api/v1.0/reminders')
       .then(function (res) {
         expect(res).to.have.status(200);
         expect(res).to.be.json;
         expect(res.body).to.be.an('array');
-        (res.body as any[]).forEach((item) => reminders.push(item.id));
+        (res.body as reminders.Reminder[]).forEach((item) => remindersTracker.push(item.id));
       });
   });
 
   // /api/v1.0/reminders/x
   it('should return one of the existing reminders', () => {
     return chai.request(server)
-      .get(`/api/v1.0/reminders/${reminders[0]}`)
+      .get(`/api/v1.0/reminders/${remindersTracker[0]}`)
       .then(function (res) {
         expect(res).to.have.status(200);
         expect(res).to.be.json;
@@ -109,7 +110,7 @@ describe('API endpoint /api/v1.0/reminders', function () {
   // /api/v1.0/reminders/x
   it('should update one of the existing reminders', () => {
     return chai.request(server)
-      .patch(`/api/v1.0/reminders/${reminders[0]}`)
+      .patch(`/api/v1.0/reminders/${remindersTracker[0]}`)
       .send({ active: false })
       .then(function (res) {
         expect(res).to.have.status(200);
@@ -121,7 +122,7 @@ describe('API endpoint /api/v1.0/reminders', function () {
   // /api/v1.0/reminders/x
   it('should return the updated reminder', () => {
     return chai.request(server)
-      .get(`/api/v1.0/reminders/${reminders[0]}`)
+      .get(`/api/v1.0/reminders/${remindersTracker[0]}`)
       .then(function (res) {
         expect(res).to.have.status(200);
         expect(res).to.be.json;
@@ -132,7 +133,7 @@ describe('API endpoint /api/v1.0/reminders', function () {
   // /api/v1.0/reminders/x
   it('should delete the updated reminder', () => {
     return chai.request(server)
-      .del(`/api/v1.0/reminders/${reminders[0]}`)
+      .del(`/api/v1.0/reminders/${remindersTracker[0]}`)
       .then(function (res) {
         expect(res).to.have.status(200);
       });
@@ -141,7 +142,7 @@ describe('API endpoint /api/v1.0/reminders', function () {
   // /api/v1.0/reminders/x
   it('should not find the updated reminder', () => {
     return chai.request(server)
-      .get(`/api/v1.0/reminders/${reminders[0]}`)
+      .get(`/api/v1.0/reminders/${remindersTracker[0]}`)
       .then(function (res) {
         throw new Error('Object exists!');
       })

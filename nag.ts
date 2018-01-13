@@ -43,8 +43,8 @@ function CheckForNotification(completeBy: Date, lastNotification: Date, frequenc
     }
 }
 
-var naggerTickTock = null;
-var closeDown = null;
+var naggerTickTock;
+var closeDown;;
 
 export function Start(msec : number = 5000) {
     if (naggerTickTock) return;
@@ -62,9 +62,9 @@ export function AutoStop(msec : number, callback: () => void)  {
 }
 
 export function Stop(callback: () => void) {
-    console.log("Closing timers");
     clearInterval(naggerTickTock);
     clearInterval(closeDown);
+    console.log("closed nag timers");
     callback();
 }
 
