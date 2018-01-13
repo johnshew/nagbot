@@ -11,7 +11,7 @@ chai.use(require('chai-http'));
 import * as app from '../server'; // Our app
 import * as reminders from '../reminders';
 var server = app.server;
-var remindersDb = reminders.RemindersDB;
+var remindersStore = reminders.remindersStore;
 
 describe('API endpoint /api/v1.0/reminders', function () {
   this.timeout(5000); // How long to wait for a response (ms)
@@ -21,15 +21,14 @@ describe('API endpoint /api/v1.0/reminders', function () {
 
   
   it ('should be ready to talk to the database', () => {
-    return remindersDb.initialized.then(() => {
-      expect(remindersDb.ready).to.be.true;
+    return remindersStore.initialized.then(() => {
+      expect(remindersStore.ready).to.be.true;
     });
   });
 
   it ('should clear the database', () => {
-    return remindersDb.deleteAll()
-    .then((operation)=>{
-      expect(operation.result.ok).to.exist.and.be.equal(1);  // 1 means command executed properly.
+    return remindersStore.deleteAll().then(()=>{
+      expect(remindersStore.ready).to.be.true;  // 1 means command executed properly.
     })
   });
 
@@ -150,24 +149,4 @@ describe('API endpoint /api/v1.0/reminders', function () {
       });
   });
 
-});
-
-import * as mongo from 'mongodb';
-import { MongoClientOptions } from 'mongodb';
-import { Reminder } from '../reminders';
-var mongoClient = mongo.MongoClient;
-var mongoPassword = process.env["mongopassword"];
-if (!mongoPassword) throw new Error('Need mongopassword env variable');
-
-describe('Mongo', function () {
-
-  it('Connect to mongo', (done) => {
-
-    mongoClient.connect(`mongodb://shew-mongo:${encodeURIComponent(mongoPassword)}@shew-mongo.documents.azure.com:10255/?ssl=true&replicaSet=globaldb`, (err, client) => {
-      if (err) throw err;
-      console.log('mongo connected');
-      client.close(true, ()=>{ console.log("Mocha mongo client closed")});
-      done();
-    });
-  });
 });

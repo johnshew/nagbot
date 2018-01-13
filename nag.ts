@@ -1,8 +1,8 @@
-import { RemindersDB } from './reminders';
+import { remindersStore } from './reminders';
 
 function Nag(): boolean {
     var done = true;
-    RemindersDB.forEach(async (reminder) => {
+    remindersStore.forEach(async (reminder) => {
             console.log(`  ${reminder.active ? "Active" : "Inactive"} reminder for ${reminder.user} to ${reminder.description} at ${reminder.nextNotification.toLocaleString('en-US')} with last notification at ${reminder.lastNotificationSent.toLocaleString('en-US')}`);
             if (!reminder.active) return;
             done = false;
@@ -10,8 +10,7 @@ function Nag(): boolean {
             if (notify) {
                 console.log(`  ==> sending notification to ${reminder.user}: ${reminder.description}`);
                 reminder.lastNotificationSent = new Date(Date.now());
-                let operationStatus = await RemindersDB.update(reminder);
-                if (operationStatus.result.ok !== 1) throw new Error('Problem updating reminder');      
+                await remindersStore.update(reminder);
             }
         });
     return done;
@@ -61,7 +60,7 @@ export function AutoStop(time : number, callback: () => void) {
 }
 
 export function Stop(callback: () => void) {
-    console.log("Closing timers.");
+    console.log("Closing timers");
     clearInterval(naggerTickTock);
     clearInterval(closeDown);
     callback();

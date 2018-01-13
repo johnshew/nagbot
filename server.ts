@@ -1,8 +1,9 @@
 import * as restify from 'restify';
 import * as uuid from 'uuid';
-import { clearInterval } from 'timers';
 
-import { Reminder, RemindersDB } from './reminders';
+import * as reminders from './reminders';
+var remindersStore = reminders.remindersStore;
+
 import * as nagger from './nag';
 
 // Setup restify server
@@ -21,7 +22,7 @@ server.get(/\/public\/?.*/, restify.plugins.serveStatic({
 }));
 
 server.get('/api/v1.0/reminders', async (req, res, next) => {
-    let reminders = await RemindersDB.find("j@s.c");
+    let reminders = await remindersStore.find("j@s.c");
     res.send(reminders);
     return next();
 });
@@ -29,8 +30,8 @@ server.get('/api/v1.0/reminders', async (req, res, next) => {
 server.post('/api/v1.0/reminders', async (req, res, next) => {
     let user = "j@s.c";
     req.body['user'] = user;
-    let reminder = new Reminder(req.body);
-    let update = await RemindersDB.update(reminder);
+    let reminder = new reminders.Reminder(req.body);
+    let update = await remindersStore.update(reminder);
     res.header("Location", `/api/v1.0/reminders/${reminder.id}`);
     res.send(201, reminder);
     next();
@@ -43,7 +44,7 @@ server.get('/api/v1.0/reminders/:id', async (req, res, next) => {
         next();
         return;
     }
-    let result = await RemindersDB.get(req.params.id);
+    let result = await remindersStore.get(req.params.id);
     if (!result) {
         res.send(404, "Not found.");
     } else {
@@ -59,19 +60,19 @@ server.patch('/api/v1.0/reminders/:id', async (req, res, next) => {
         next();
         return;
     }
-    let reminder = await RemindersDB.get(req.params.id) as Reminder;
+    let reminder = await remindersStore.get(req.params.id) as reminders.Reminder;
     let created = false;
     if (!reminder) {
         created = true;
         let result = null;
         try {
-            reminder = new Reminder(req.body, true);
+            reminder = new reminders.Reminder(req.body, true);
         }
         catch { }
     } else {
         reminder.update(req.body);
     }
-    let update = await RemindersDB.update(reminder);
+    let update = await remindersStore.update(reminder);
     res.send(created ? 201 : 200, reminder);
     next();
 });
@@ -83,11 +84,11 @@ server.del('/api/v1.0/reminders/:id', async (req, res, next) => {
         next();
         return;
     }
-    let reminder = await RemindersDB.get(req.params.id);
+    let reminder = await remindersStore.get(req.params.id);
     if (!reminder) {
         res.send(401, "Not found")
     } else {
-        await RemindersDB.delete(reminder);
+        await remindersStore.delete(reminder);
         res.send(200);
     }
     next();
@@ -100,7 +101,6 @@ server.listen(process.env.port || process.env.PORT || 3978, () => {
 
 nagger.Start(() => { });
 nagger.AutoStop(25000, () => { 
-    console.log("closing server");
     server.close();
-    RemindersDB.close();
+    reminders.closeAll();
 });

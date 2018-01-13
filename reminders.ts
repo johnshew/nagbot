@@ -47,23 +47,32 @@ export class Reminder {
     }
 }
 
-
-class ReminderDB {
+interface RemindersStore {
+    ready : boolean;
     initialized : Promise<void>;
-    ready = false;
-    client: mongo.MongoClient;
-    db: mongo.Db;
+    get(id: string): Promise<Reminder>;
+    find(user: string): Promise<Reminder[]>;
+    update(reminder: Reminder): Promise<void>;
+    delete(reminder: Reminder): Promise<void>;
+    deleteAll(): Promise<void>
+    forEach(per: (reminder: Reminder) => void): Promise<void>;
+    close() : Promise<void>;
+}
 
-    constructor(mongoUrl: string, dbName: string)
-    {
+class RemindersMongo implements RemindersStore {
+    initialized: Promise<void>;
+    public ready = false;
+    private client: mongo.MongoClient;
+    private db: mongo.Db;
+
+    constructor(mongoUrl: string, dbName: string) {
         this.ready = false;
         this.client = null;
         this.db = null;
         this.initialized = this.asyncInitialize(mongoUrl, dbName);
     }
 
-    public async asyncInitialize(mongoUrl: string, dbName: string) : Promise<void>
-    {
+    private async asyncInitialize(mongoUrl: string, dbName: string): Promise<void> {
         this.client = await MongoClient.connect(mongoUrl);
         this.db = this.client.db(dbName);
         this.ready = true;
@@ -87,27 +96,34 @@ class ReminderDB {
 
     public async update(reminder: Reminder) {
         if (!this.ready) await this.initialized;
-        return this.db.collection('reminders').updateOne({ 'id': reminder.id }, { $set: reminder }, { upsert: true });
+        let operation = await this.db.collection('reminders').updateOne({ 'id': reminder.id }, { $set: reminder }, { upsert: true });
+        if (operation.result.ok === 1) return;
+        throw new Error('update failed');
     }
 
     public async delete(reminder: Reminder) {
         if (!this.ready) await this.initialized;
-        return this.db.collection('reminders').deleteOne({ 'id': reminder.id });
+        let operation = await this.db.collection('reminders').deleteOne({ 'id': reminder.id });
+        if (operation.result.ok === 1) return;
+        throw new Error('update failed');
     }
 
     public async forEach(per: (reminder: Reminder) => void) {
         if (!this.ready) await this.initialized;
-        this.db.collection('reminders').find().forEach((reminder) => {
-            per(new Reminder(reminder));
-        }, () => {
-            console.log("DB findAll complete");
+        return new Promise<void>((resolve, reject) => {
+            this.db.collection('reminders').find().forEach((reminder) => {
+                per(new Reminder(reminder));
+            }, () => {
+                resolve();
+            })
         });
-        return;
     }
 
     public async deleteAll() {
         if (!this.ready) await this.initialized;
-        return this.db.collection('reminders').deleteMany({});
+        let operation = await this.db.collection('reminders').deleteMany({});
+        if (operation.result.ok === 1) return;
+        throw new Error('delete all failed.');
     }
 
 
@@ -115,20 +131,21 @@ class ReminderDB {
         if (!this.ready) await this.initialized;
         let client = await this.client;
         client.close(true, () => {
-            console.log('closing client');
+            console.log('closing mongo client');
         });
     }
 }
 
-class ReminderStore {
-    store: {
+class RemindersInMem implements RemindersStore {
+    public initialized = Promise.resolve();
+    public ready = true;
+    private store: {
         [userId: string]: { [id: string]: Reminder }
     } = {};
-    db = null;
-
+    
     constructor() { }
 
-    public get(id: string): Reminder | undefined {
+    public async get(id: string) : Promise<Reminder>{
         for (const user in this.store) {
             if (typeof this.store[user][id] !== 'undefined') {
                 return (this.store[user][id]);
@@ -136,31 +153,48 @@ class ReminderStore {
         }
         return undefined;
     }
-    public find(user: string): Reminder[] {
+    public async find(user: string): Promise<Reminder[]> {
         if (typeof this.store[user] === 'undefined') { this.store[user] = {}; }
         let reminderArray = Object.keys(this.store[user]).reduce((prev, key) => { prev.push(this.store[user][key]); return prev }, []);
         return reminderArray;
     }
-    public update(reminder: Reminder) {
+    public async update(reminder: Reminder) : Promise<void>{
         if (typeof this.store[reminder.user] === undefined) { this.store[reminder.user] = {} };
         this.store[reminder.user][reminder.id] = reminder;
+        return;
     }
-    public delete(reminder: Reminder) {
+    public async delete(reminder: Reminder) : Promise<void> {
         if (this.store[reminder.user] && this.store[reminder.user][reminder.id]) {
             delete this.store[reminder.user][reminder.id];
         }
+        return;
     }
-    public forEach(per: (reminder: Reminder) => void) {
+    public async deleteAll() : Promise<void> {
+        Object.keys(this.store).forEach((user) => delete this.store[user] );
+        return;
+    }
+    public async forEach(per: (reminder: Reminder) => void) : Promise<void> {
         Object.keys(this.store).forEach((user) => {
             Object.keys(this.store[user]).forEach((id) => {
                 per(this.store[user][id]);
             });
         });
+        return;
+    }
+    public async close() {
+        return;
     }
 }
 
-export var RemindersStoreX = new ReminderStore();
-export var RemindersDB = new ReminderDB(`mongodb://shew-mongo:${encodeURIComponent(mongoPassword)}@shew-mongo.documents.azure.com:10255/?ssl=true&replicaSet=globaldb`,'Test');
+
+export var remindersInMem = new RemindersInMem();
+export var remindersMongo = new RemindersMongo(`mongodb://shew-mongo:${encodeURIComponent(mongoPassword)}@shew-mongo.documents.azure.com:10255/?ssl=true&replicaSet=globaldb`, 'Test');
+export var remindersStore = remindersInMem;
+
+export function closeAll() {
+    remindersInMem.close();
+    remindersMongo.close();
+}
 
 function pick<T extends object, K extends keyof T>(obj: T, ...keys: K[]): Pick<T, K> {
     if (typeof obj !== 'object') { console.log("not an object"); throw new Error("Pick error"); }
