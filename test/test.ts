@@ -21,9 +21,8 @@ describe('API endpoint /api/v1.0/reminders', function () {
 
   
   it ('should be ready to talk to the database', () => {
-    return remindersDb.ready
-    .then((ready) => {
-      expect(ready).to.be.true;
+    return remindersDb.initialized.then(() => {
+      expect(remindersDb.ready).to.be.true;
     });
   });
 

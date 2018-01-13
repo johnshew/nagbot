@@ -49,63 +49,55 @@ export class Reminder {
 
 
 class ReminderDB {
-    client: Promise<mongo.MongoClient>;
-    testDb: Promise<mongo.Db>;
-    ready: Promise<boolean>;
-    constructor() {
-        this.client = new Promise<mongo.MongoClient>(async (resolve, reject) => {
-            MongoClient.connect(`mongodb://shew-mongo:${encodeURIComponent(mongoPassword)}@shew-mongo.documents.azure.com:10255/?ssl=true&replicaSet=globaldb`)
-                .then((client) => {
-                    console.log('mongo connected');
-                    resolve(client);
-                })
-                .catch((reason) => {
-                    console.log('Unable to connect to mongo');
-                    reject(reason);
-                });
-            await this.client;
-            this.testDb = new Promise<mongo.Db>(async (resolve, reject) => {
-                let client = await this.client
-                let db = client.db('Test');
-                resolve(db);
-            });
-            this.ready = new Promise<boolean>(async (resolve, reject) => {
-                let db = await this.testDb;
-                db.createCollection('reminders', (collection) => {
-                    resolve(true);
-                });
-            });
-        });
+    initialized : Promise<void>;
+    ready = false;
+    client: mongo.MongoClient;
+    db: mongo.Db;
+
+    constructor(mongoUrl: string, dbName: string)
+    {
+        this.ready = false;
+        this.client = null;
+        this.db = null;
+        this.initialized = this.asyncInitialize(mongoUrl, dbName);
+    }
+
+    public async asyncInitialize(mongoUrl: string, dbName: string) : Promise<void>
+    {
+        this.client = await MongoClient.connect(mongoUrl);
+        this.db = this.client.db(dbName);
+        this.ready = true;
+        return;
     }
 
     public async get(id: string): Promise<Reminder> {
-        let db = await this.testDb;
-        let result = await db.collection('reminders').findOne({ 'id': id });
+        if (!this.ready) await this.initialized;
+        let result = await this.db.collection('reminders').findOne({ 'id': id });
         let reminder = (result) ? new Reminder(result) : null;
         return reminder;
     }
 
     public async find(user: string): Promise<Reminder[]> {
-        let db = await this.testDb;
-        let result = await db.collection('reminders').find({ 'user': user }).toArray();
+        if (!this.ready) await this.initialized;
+        let result = await this.db.collection('reminders').find({ 'user': user }).toArray();
         let reminders: Reminder[] = [];
         result.forEach((reminder) => reminders.push(new Reminder(reminder)));
         return reminders;
     }
 
     public async update(reminder: Reminder) {
-        let db = await this.testDb;
-        return db.collection('reminders').updateOne({ 'id': reminder.id }, { $set: reminder }, { upsert: true });
+        if (!this.ready) await this.initialized;
+        return this.db.collection('reminders').updateOne({ 'id': reminder.id }, { $set: reminder }, { upsert: true });
     }
 
     public async delete(reminder: Reminder) {
-        let db = await this.testDb;
-        return db.collection('reminders').deleteOne({ 'id': reminder.id });
+        if (!this.ready) await this.initialized;
+        return this.db.collection('reminders').deleteOne({ 'id': reminder.id });
     }
 
     public async forEach(per: (reminder: Reminder) => void) {
-        let db = await this.testDb;
-        db.collection('reminders').find().forEach((reminder) => {
+        if (!this.ready) await this.initialized;
+        this.db.collection('reminders').find().forEach((reminder) => {
             per(new Reminder(reminder));
         }, () => {
             console.log("DB findAll complete");
@@ -114,12 +106,13 @@ class ReminderDB {
     }
 
     public async deleteAll() {
-        let db = await this.testDb;
-        return db.collection('reminders').deleteMany({});
+        if (!this.ready) await this.initialized;
+        return this.db.collection('reminders').deleteMany({});
     }
 
 
     public async close() {
+        if (!this.ready) await this.initialized;
         let client = await this.client;
         client.close(true, () => {
             console.log('closing client');
@@ -167,7 +160,7 @@ class ReminderStore {
 }
 
 export var RemindersStoreX = new ReminderStore();
-export var RemindersDB = new ReminderDB();
+export var RemindersDB = new ReminderDB(`mongodb://shew-mongo:${encodeURIComponent(mongoPassword)}@shew-mongo.documents.azure.com:10255/?ssl=true&replicaSet=globaldb`,'Test');
 
 function pick<T extends object, K extends keyof T>(obj: T, ...keys: K[]): Pick<T, K> {
     if (typeof obj !== 'object') { console.log("not an object"); throw new Error("Pick error"); }
