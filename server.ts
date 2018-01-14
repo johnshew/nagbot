@@ -56,6 +56,21 @@ export function create(config: any, callback?: () => void) {
         next();
     });
 
+    server.put('/api/v1.0/reminders/:id', async (req, res, next) => {
+        let user = "j@s.c";
+        if (!req.params.hasOwnProperty('id') && typeof req.params.id != "string") {
+            res.send(400, "id not found");
+            next();
+            return;
+        }
+        let reminder = new reminders.Reminder(req.body);
+        let exists = await remindersStore.get(req.params.id);
+        let update = await remindersStore.update(reminder);
+        res.header("Location", `/api/v1.0/reminders/${reminder.id}`);
+        res.send(exists ? 200 : 201, reminder);
+        next();
+    });
+
     server.patch('/api/v1.0/reminders/:id', async (req, res, next) => {
         let user = "j@s.c";
         if (!req.params.hasOwnProperty('id') && typeof req.params.id != "string") {

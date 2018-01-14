@@ -82,7 +82,7 @@ class RemindersMongo implements RemindersStore {
 
     public async get(id: string): Promise<Reminder | undefined> {
         if (!this.ready) await this.initialized;
-        let result = await this.db!.collection('reminders').findOne({ 'id': id });
+        let result = await this.db!.collection('reminders').findOne({ '_id': id });
         let reminder = (result) ? new Reminder(result) : undefined;
         return reminder;
     }
@@ -97,14 +97,14 @@ class RemindersMongo implements RemindersStore {
 
     public async update(reminder: Reminder) {
         if (!this.ready) await this.initialized;
-        let operation = await this.db!.collection('reminders').updateOne({ 'id': reminder.id }, { $set: reminder }, { upsert: true });
+        let operation = await this.db!.collection('reminders').updateOne({ '_id': reminder.id }, { $set: reminder }, { upsert: true });
         if (operation.result.ok === 1) return;
         throw new Error('update failed');
     }
 
     public async delete(reminder: Reminder) {
         if (!this.ready) await this.initialized;
-        let operation = await this.db!.collection('reminders').deleteOne({ 'id': reminder.id });
+        let operation = await this.db!.collection('reminders').deleteOne({ '_id': reminder.id });
         if (operation.result.ok === 1) return;
         throw new Error('update failed');
     }
