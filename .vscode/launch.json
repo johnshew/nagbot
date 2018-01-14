@@ -24,6 +24,10 @@
                 "--colors",
                 "${workspaceFolder}/lib/test"
             ],
+            "env": {
+                "DEBUG": "*,-mocha:*"
+            },
+            "outputCapture": "std",
             "internalConsoleOptions": "openOnSessionStart"
         },
         {
@@ -31,6 +35,7 @@
             "request": "launch",
             "name": "Launch Program",
             "program": "${workspaceFolder}\\lib\\server.js"
-        }
+        },        
     ]
+    
 }

@@ -1,3 +1,6 @@
+import * as _debug from 'debug';
+let debug = _debug('server');
+
 import * as restify from 'restify';
 import * as uuid from 'uuid';
 
@@ -93,7 +96,7 @@ export function create(config: any, callback?: () => void) {
 
 
     server.listen(config, () => {
-        console.log(`Server listening on ${server.url}`);
+        debug(`Server listening on ${server.url}`);
         if (callback) callback();
     });
 

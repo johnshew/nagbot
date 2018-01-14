@@ -1,5 +1,7 @@
-import * as uuid from 'uuid';
+import * as Debug from 'debug';
+let debug = Debug("reminders");
 
+import * as uuid from 'uuid';
 import * as mongo from 'mongodb';
 import { MongoClient } from 'mongodb';
 var mongoClient = mongo.MongoClient
@@ -130,6 +132,7 @@ class RemindersMongo implements RemindersStore {
         let result = new Promise<void>(async (resolve, reject) => {
             let client = await this.client;
             client!.close(true, () => {
+                debug('closed RemindersMongo')
                 resolve();
             });
         });
@@ -189,6 +192,7 @@ class RemindersInMem implements RemindersStore {
     }
 
     public async close() {
+        debug('closed RemindersImMem');
         return;
     }
 }
@@ -198,20 +202,21 @@ export var remindersMongo = new RemindersMongo(`mongodb://shew-mongo:${encodeURI
 export var remindersStore = remindersMongo;
 
 export function close(callback?: () => void) {
-    let remindersInMemClose = remindersInMem.close().then(() => console.log('remindersInMem closed'));
-    let remindersMongoClose = remindersMongo.close().then(() => console.log('remindersMongo closed'));
+    let remindersInMemClose = remindersInMem.close().then(() => {});
+    let remindersMongoClose = remindersMongo.close().then(() => {});
     let allDone = Promise.all([remindersInMemClose, remindersMongoClose]).then(() => {
+        debug('closed reminders');
         if (callback) callback();
     });
 }
 
 function pick<T extends object, K extends keyof T>(obj: T, ...keys: K[]): Pick<T, K> {
-    if (typeof obj !== 'object') { console.log("not an object"); throw new Error("Pick error"); }
+    if (typeof obj !== 'object') { debug("not an object"); throw new Error("Pick error"); }
     var result = keys.reduce((p, c) => {
         if (obj.hasOwnProperty(c)) {
             if (typeof obj[c] != "undefined") {
                 p[c] = obj[c];
-            } else throw new Error('What?');
+            } else throw new debug('pick should not get here');
         };
         return p;
     }, {} as Pick<T, K>);

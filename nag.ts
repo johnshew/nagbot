@@ -1,14 +1,17 @@
+import * as _debug from 'debug';
+let debug = _debug('nag');
+
 import { remindersStore } from './reminders';
 
 function Nag(): boolean {
     var done = true;
     remindersStore.forEach(async (reminder) => {
-            console.log(`  ${reminder.active ? "Active" : "Inactive"} reminder for ${reminder.user} to ${reminder.description} at ${reminder.nextNotification.toLocaleString('en-US')} with last notification at ${reminder.lastNotificationSent.toLocaleString('en-US')}`);
+            debug(`  ${reminder.active ? "Active" : "Inactive"} reminder for ${reminder.user} to ${reminder.description} at ${reminder.nextNotification.toLocaleString('en-US')} with last notification at ${reminder.lastNotificationSent.toLocaleString('en-US')}`);
             if (!reminder.active) return;
             done = false;
             var notify = CheckForNotification(reminder.nextNotification, reminder.lastNotificationSent, reminder.notificationPlan);
             if (notify) {
-                console.log(`  ==> sending notification to ${reminder.user}: ${reminder.description}`);
+                debug(`  ==> sending notification to ${reminder.user}: ${reminder.description}`);
                 reminder.lastNotificationSent = new Date(Date.now());
                 await remindersStore.update(reminder);
             }
@@ -20,7 +23,7 @@ function CheckForNotification(completeBy: Date, lastNotification: Date, frequenc
     var now = Date.now();
     var msToComplete = completeBy.getTime() - now;
     let [ days, hours, minutes ] = DaysHoursMinutes(msToComplete);
-    console.log(`Completes in ${days} days, ${hours} hours, ${minutes} minutes`)
+    debug(`Completes in ${days} days, ${hours} hours, ${minutes} minutes`)
     if (msToComplete < 0) return true;
 
     let msSince = now - lastNotification.getTime();
@@ -38,7 +41,7 @@ function CheckForNotification(completeBy: Date, lastNotification: Date, frequenc
     } else if (frequency === "close") {
         return (msSince > 5 * msecInMinute);
     } else {
-        console.log('Should not get here.')
+        debug('Should not get here.')
         return false;
     }
 }
@@ -50,13 +53,13 @@ export function Start(msec : number = 5000) {
     if (naggerTickTock) return;
     naggerTickTock = setInterval(async () => {
         var done = Nag();
-        console.log(`TickTock completed.  All done: ${done}`)
+        debug(`TickTock completed.  All done: ${done}`)
     }, msec);
 }
 
 export function AutoStop(msec : number, callback: () => void)  {
     closeDown = setInterval(() => {
-        console.log('Auto stopping');
+        debug('auto stopping');
         Stop(callback);
     }, msec);
 }
@@ -64,7 +67,7 @@ export function AutoStop(msec : number, callback: () => void)  {
 export function Stop(callback: () => void) {
     clearInterval(naggerTickTock);
     clearInterval(closeDown);
-    console.log("closed nag timers");
+    debug("closed nag timers");
     callback();
 }
 
