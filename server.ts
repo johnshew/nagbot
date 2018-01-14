@@ -5,7 +5,7 @@ import * as reminders from './reminders';
 var remindersStore = reminders.remindersStore;
 
 // Setup restify server
-export function create(config: any, callback: () => void) {
+export function create(config: any, callback?: () => void) {
 
     let server = restify.createServer();
 
@@ -94,6 +94,7 @@ export function create(config: any, callback: () => void) {
 
     server.listen(config, () => {
         console.log(`Server listening on ${server.url}`);
+        if (callback) callback();
     });
 
     return server;

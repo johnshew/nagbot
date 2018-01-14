@@ -23,6 +23,10 @@ describe('API endpoint /api/v1.0/reminders', function () {
   
   it ('should be ready to talk to the database', () => {
     return remindersStore.initialized.then(() => {
+      if ( remindersStore.ready != true) {
+        console.log("This should never happen unless there is an error");
+        throw new Error("Assertion about ready failed.");
+      }
       expect(remindersStore.ready).to.be.true;
     });
   });
