@@ -23,7 +23,7 @@ export class Reminder {
     }
 
     static LoadReminder(reminder: Reminder, json: any, cleanup: boolean = true): Reminder {
-        Object.assign(reminder, { ...reminder, ...pick(json, 'id', 'active', 'description', 'nextNotification', 'lastNotificationSent', 'notificationPlan', 'user') });
+        Object.assign(reminder, pick(json, 'id', 'active', 'description', 'nextNotification', 'lastNotificationSent', 'notificationPlan', 'user') );
         if (cleanup) {
             if (typeof reminder.id != 'string') reminder.id = uuid.v4() as string;
             if (typeof reminder.active === 'undefined') reminder.active = true;
