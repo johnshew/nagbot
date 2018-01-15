@@ -28,14 +28,17 @@ export class Reminder {
             if (typeof reminder.id != 'string') reminder.id = uuid.v4() as string;
             if (typeof reminder.active === 'undefined') reminder.active = true;
             if (typeof reminder.lastNotificationSent === 'number') reminder.lastNotificationSent = new Date(reminder.lastNotificationSent);
+            if (typeof reminder.lastNotificationSent === 'string') reminder.lastNotificationSent = new Date(reminder.lastNotificationSent);
             if (typeof reminder.lastNotificationSent === 'undefined') reminder.lastNotificationSent = new Date(0);
+            if (typeof reminder.nextNotification === 'string') reminder.nextNotification = new Date(reminder.nextNotification);
             if (typeof reminder.nextNotification === 'number') reminder.nextNotification = new Date(reminder.nextNotification);
+            if (typeof reminder.nextNotification === 'undefined') reminder.nextNotification = new Date(Date.now() + 5 * 60 * 1000);
             if (typeof reminder.notificationPlan === 'undefined') reminder.notificationPlan = 'daily';
         }
         if (typeof reminder.id !== "string"
             || typeof reminder.active !== 'boolean'
             || typeof reminder.nextNotification !== 'object'
-            || typeof reminder.nextNotification !== 'object'
+            || typeof reminder.lastNotificationSent !== 'object'
             || typeof reminder.notificationPlan !== 'string'
             || typeof reminder.user !== 'string') {
             throw new Error("Reminder not valid");

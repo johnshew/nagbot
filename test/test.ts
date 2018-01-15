@@ -21,10 +21,10 @@ describe('API endpoint /api/v1.0/reminders', function () {
   before(function () { });
   after(function () { });
 
-  
-  it ('should be ready to talk to the database', () => {
+
+  it('should be ready to talk to the database', () => {
     return remindersStore.initialized.then(() => {
-      if ( remindersStore.ready != true) {
+      if (remindersStore.ready != true) {
         debug("This should never happen unless there is an error");
         throw new Error("Assertion about ready failed.");
       }
@@ -32,8 +32,8 @@ describe('API endpoint /api/v1.0/reminders', function () {
     });
   });
 
-  it ('should clear the database', () => {
-    return remindersStore.deleteAll().then(()=>{
+  it('should clear the database', () => {
+    return remindersStore.deleteAll().then(() => {
       expect(remindersStore.ready).to.be.true;  // 1 means command executed properly.
     })
   });
@@ -42,7 +42,7 @@ describe('API endpoint /api/v1.0/reminders', function () {
   it('should return 0 reminders', () => {
     return chai.request(server)
       .get('/api/v1.0/reminders')
-      .then( (res) => {
+      .then((res) => {
         expect(res).to.have.status(200);
         expect(res).to.be.json;
         expect(res.body).to.be.an('array').and.length(0);
@@ -88,7 +88,7 @@ describe('API endpoint /api/v1.0/reminders', function () {
       });
   });
 
-  var remindersTracker : string[] = [];
+  var remindersTracker: string[] = [];
 
   // /api/v1.0/reminders GET 
   it('should return an array of reminders', () => {
@@ -153,6 +153,47 @@ describe('API endpoint /api/v1.0/reminders', function () {
       })
       .catch(function (err) {
         expect(err).to.have.status(404);
+      });
+  });
+
+  // /api/v1.0/reminders POST 
+  it('should add new reminder', () => {
+    let id = uuid.v4() as string;
+    return chai.request(server)
+      .put(`/api/v1.0/reminders/${id}`)
+      .send({
+        id: id,
+        description: 'feed dog',
+        nextNotification: new Date(Date.now() + 75 * 60 * 1000),
+        notificationPlan: "daily"
+      })
+      .then(function (res) {
+        expect(res).to.have.status(201);
+        expect(res).to.be.json;
+        expect(res).to.have.header('location');
+        expect(res.body).to.be.an('object');
+        expect(res.body).to.have.property('id');
+        remindersTracker.push(res.body.id);
+      });
+  });
+
+  // /api/v1.0/reminders POST 
+  it('should replace the reminder', () => {
+    let id = remindersTracker[remindersTracker.length-1];
+    return chai.request(server)
+      .put(`/api/v1.0/reminders/${id}`)
+      .send({
+        id: id,
+        description: 'feed dog',
+        nextNotification: new Date(Date.now() + 75 * 60 * 1000),
+        notificationPlan: "hourly"
+      })
+      .then(function (res) {
+        expect(res).to.have.status(200);
+        expect(res).to.be.json;
+        expect(res).to.have.header('location');
+        expect(res.body).to.be.an('object');
+        expect(res.body).to.have.property('id');        
       });
   });
 
