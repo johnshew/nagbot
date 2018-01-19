@@ -34,7 +34,11 @@
             "type": "node",
             "request": "launch",
             "name": "Launch Program",
-            "program": "${workspaceFolder}\\lib\\server.js"
+            "program": "${workspaceFolder}\\lib\\app.js",
+            "outputCapture": "std",            
+            "env": {
+                "DEBUG": "nag,-mocha:*,-superagent"
+            }            
         },        
     ]
     

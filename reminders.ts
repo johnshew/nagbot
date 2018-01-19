@@ -5,7 +5,7 @@ import * as uuid from 'uuid';
 import * as mongo from 'mongodb';
 import { MongoClient } from 'mongodb';
 var mongoClient = mongo.MongoClient
-var mongoPassword = process.env["mongopassword"];
+var mongoPassword = process.env["MongoPassword"];
 if (!mongoPassword) throw new Error('Need mongopassword env variable');
 
 

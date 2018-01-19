@@ -112,7 +112,7 @@ export function create(config: any, callback?: () => void) {
 
 
     server.listen(config, () => {
-        debug(`Server listening on ${server.url}`);
+        console.log(`Server listening on ${server.url}`);
         if (callback) callback();
     });
 

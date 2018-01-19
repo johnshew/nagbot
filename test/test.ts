@@ -11,15 +11,22 @@ chai.use(require('chai-http'));
 
 import * as reminders from '../reminders';
 var remindersStore = reminders.remindersStore;
-
+import * as nag from '../nag';
 import * as app from '../app'; // Our app
 var server = app.server;
 
 describe('API endpoint /api/v1.0/reminders', function () {
   this.timeout(5000); // How long to wait for a response (ms)
 
-  before(function () { });
-  after(function () { });
+  before(function () {
+  });
+
+  after(function () {
+    nag.AutoStop(20000, () => {
+      reminders.close(() => { });
+      server.close(() => debug('server closed'));
+    });
+  });
 
 
   it('should be ready to talk to the database', () => {
@@ -179,7 +186,7 @@ describe('API endpoint /api/v1.0/reminders', function () {
 
   // /api/v1.0/reminders POST 
   it('should replace the reminder', () => {
-    let id = remindersTracker[remindersTracker.length-1];
+    let id = remindersTracker[remindersTracker.length - 1];
     return chai.request(server)
       .put(`/api/v1.0/reminders/${id}`)
       .send({
@@ -193,7 +200,7 @@ describe('API endpoint /api/v1.0/reminders', function () {
         expect(res).to.be.json;
         expect(res).to.have.header('location');
         expect(res.body).to.be.an('object');
-        expect(res.body).to.have.property('id');        
+        expect(res.body).to.have.property('id');
       });
   });
 
