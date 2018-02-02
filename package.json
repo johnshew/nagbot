@@ -21,7 +21,7 @@
     "@types/restify": "^5.0.7",
     "@types/uuid": "^3.4.3",
     "env-cmd": "^7.0.0",
-    "typescript": "^2.4.2"
+    "typescript": "^2.7.1"
   },
   "dependencies": {
     "chai": "^4.1.2",
