@@ -61,26 +61,16 @@ const bot = new Bot(consoleAdapter)
             case 'Reminder.Create':
                 return createReminders(context);
             default:
-                if (utterance === 'subscribe') {
-                    const reference = context.conversationReference;
-                    const userId = reference && reference.user && reference.user.id;
-                    const changes = {};
-                    changes['reference/' + userId] = reference;
-                    return storage.write(changes)
-                        .then(() => subscribeUser(userId))
-                        .then(() => {
-                            context.reply(`Thank You! We will message you shortly.`);
-                        });
-                } else {
-                }
+                context.reply(`Thank You! We will message you shortly.`);
         }
+
         return replyWithHelp(context);
 
     });
 
 function createReminders(context: BotContext) {
+    context.reply('Create reminder ', context.request);
     if (context.topIntent && context.topIntent.entities) context.topIntent.entities.forEach(element => {
-        context.reply('Create reminder ', context.request);
         context.reply(JSON.stringify(element));
     });
 }
