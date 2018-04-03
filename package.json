@@ -21,13 +21,11 @@
     "@types/restify": "^5.0.7",
     "@types/uuid": "^3.4.3",
     "env-cmd": "^7.0.0",
-    "typescript": "^2.7.2"
+    "typescript": "^2.8.1"
   },
   "dependencies": {
-    "botbuilder": "^4.0.0-m1.7",
-    "botbuilder-ai": "^4.0.0-m1.7",
-    "botbuilder-node": "^4.0.0-m1.7",
-    "botbuilder-services": "^4.0.0-m1.7",
+    "botbuilder": "^4.0.0-m2.2",
+    "botbuilder-ai": "^4.0.0-m2.2",
     "chai": "^4.1.2",
     "chai-http": "^3.0.0",
     "debug": "^3.1.0",

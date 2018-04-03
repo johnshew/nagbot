@@ -9,17 +9,14 @@ var remindersStore = reminders.remindersStore;
 import * as reminderService from './app'; // Our app
 var reminderServer = reminderService.server;
 
-import { Bot, MemoryStorage, ConversationReference } from 'botbuilder';
-import { BotFrameworkAdapter } from 'botbuilder-services';
-import { ConsoleAdapter } from 'botbuilder-node';
+import { ConsoleAdapter, BotFrameworkAdapter, MemoryStorage, ConversationReference } from 'botbuilder';
 import { LuisRecognizer } from 'botbuilder-ai';
 
 const appId = '6f2bf26c-dad4-4b18-a1da-b6936008a601 ';
 const subscriptionKey = '9886d9b8725a4cbeb19c3cf0708b5c83';
 const model = new LuisRecognizer({ appId: appId, subscriptionKey: subscriptionKey });
 
-
-import * as restify from 'restify';
+/* import * as restify from 'restify';
 
 // Create server
 let server = restify.createServer();
@@ -33,11 +30,18 @@ const cloudAdapter = new BotFrameworkAdapter({
 });
 
 server.post('/api/messages', cloudAdapter.listen() as any);
+ */
 
-const consoleAdapter = new ConsoleAdapter().listen();
+const consoleAdapter = new ConsoleAdapter();
 const storage = new MemoryStorage();
 
-const bot = new Bot(consoleAdapter)
+consoleAdapter.listen(async context => {
+    console.log(`Got activity ${ JSON.stringify(context)}`);
+    let result = await model.recognize(context);
+    console.log(`Model ${JSON.stringify(result)}`);
+})
+
+/* const bot = new Bot(consoleAdapter)
     .use(model)
     .onReceive((context) => {
         const intentName = context.topIntent ? context.topIntent.name : 'None';
@@ -99,4 +103,4 @@ function createContextForUser(userId, onReady) {
             const reference = rows[referenceKey] as ConversationReference;
             bot.createContext(reference, onReady);
         });
-}
+} */
