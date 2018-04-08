@@ -24,8 +24,8 @@
     "typescript": "^2.8.1"
   },
   "dependencies": {
-    "botbuilder": "^4.0.0-m2.2",
-    "botbuilder-ai": "^4.0.0-m2.2",
+    "botbuilder": "^4.0.0-m3.0",
+    "botbuilder-ai": "^4.0.0-m3.0",
     "chai": "^4.1.2",
     "chai-http": "^3.0.0",
     "debug": "^3.1.0",

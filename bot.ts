@@ -9,8 +9,8 @@ var remindersStore = reminders.remindersStore;
 import * as reminderService from './app'; // Our app
 var reminderServer = reminderService.server;
 
-import { ConsoleAdapter, BotFrameworkAdapter, MemoryStorage, ConversationReference } from 'botbuilder';
-import { LuisRecognizer } from 'botbuilder-ai';
+import { ConsoleAdapter, BotFrameworkAdapter, MemoryStorage, ConversationReference, StoreItems, TurnContext, Activity } from 'botbuilder';
+import { LuisRecognizer, LuisRecognizerResult } from 'botbuilder-ai';
 
 const appId = '6f2bf26c-dad4-4b18-a1da-b6936008a601 ';
 const subscriptionKey = '9886d9b8725a4cbeb19c3cf0708b5c83';
@@ -35,72 +35,80 @@ server.post('/api/messages', cloudAdapter.listen() as any);
 const consoleAdapter = new ConsoleAdapter();
 const storage = new MemoryStorage();
 
-consoleAdapter.listen(async context => {
-    console.log(`Got activity ${ JSON.stringify(context)}`);
-    let result = await model.recognize(context);
-    console.log(`Model ${JSON.stringify(result)}`);
-})
 
-/* const bot = new Bot(consoleAdapter)
-    .use(model)
-    .onReceive((context) => {
-        const intentName = context.topIntent ? context.topIntent.name : 'None';
-        const intentScore = (context.topIntent) ? context.topIntent.score : 0;
-        console.log('intent: ', intentName, ' with score of ', intentScore);
-        const utterance = (context.request.text || '').trim().toLowerCase();
-        if (utterance === 'subscribe') {
-            const reference = context.conversationReference;
-            const userId = reference && reference.user && reference.user.id;
-            const changes = {};
-            changes['reference/' + userId] = reference;
-            return storage.write(changes)
-                .then(() => subscribeUser(userId))
-                .then(() => {
-                    context.reply(`Thank You! We will message you shortly.`);
-                });
-        }
-        if (intentScore > 0.4) switch (intentName) {
-            case 'Reminder.Find':
-                return replyWithReminders(context);
-            case 'Reminder.Create':
-                return createReminders(context);
-            default:
-                context.reply(`Thank You! We will message you shortly.`);
-        }
+consoleAdapter.listen(async (context) => {
+    // console.log(`Got activity ${ JSON.stringify(context)}`);
+    switch (context.activity.text.trim().toLowerCase()) {
+        case 'help':
+            replyWithHelp(context);
+            return;
+        case 'subscribe':
+            subscribeUser(context);
+            context.sendActivity('You have subscribed');
+            return;
+    }
+    let recognized = await model.recognize(context);
+    let intentName = topIntent(recognized);
+    switch (intentName) {
+        case 'Reminder.Find':
+            return replyWithReminders(context);
+        case 'Reminder.Create':
+            return createReminders(context, recognized);
+        default:
+            return replyWithHelp(context);
+    }
+});
 
-        return replyWithHelp(context);
+function subscribeUser(context: TurnContext) {
+    const activity = context.activity;
+    const conversationReference = TurnContext.getConversationReference(activity);
+    const user = (conversationReference.user) ? conversationReference.user.id : undefined;
+    if (!user) {
+        throw new Error('No user in subscribe');
+    }
 
-    });
+    let changes = {};
+    changes[user] = conversationReference;
+    storage.write(changes);
 
-function createReminders(context: BotContext) {
-    context.reply('Create reminder ', context.request);
-    if (context.topIntent && context.topIntent.entities) context.topIntent.entities.forEach(element => {
-        context.reply(JSON.stringify(element));
-    });
-}
-
-function replyWithReminders(context: BotContext) {
-    context.reply('Reminders...');
-}
-
-function replyWithHelp(context: BotContext) {
-    context.reply('Help topic');
-}
-
-
-function subscribeUser(userId) {
     setTimeout(() => {
-        createContextForUser(userId, (context) => {
-            context.reply(`You've been notified!`);
-        });
-    }, 2000);
+        messageUser(user, "You've been notified");
+    }, 4000);
 }
 
-function createContextForUser(userId, onReady) {
-    const referenceKey = 'reference/' + userId;
-    return storage.read([referenceKey])
-        .then((rows) => {
-            const reference = rows[referenceKey] as ConversationReference;
-            bot.createContext(reference, onReady);
-        });
-} */
+async function messageUser(user, message) {
+    const data = await storage.read([user]);
+    const conversationReference = data[user] as ConversationReference;
+    consoleAdapter.continueConversation(conversationReference, (context) => {
+        context.sendActivity("Notification");
+    });
+}
+
+
+function createReminders(context: TurnContext, recognized: LuisRecognizerResult) {
+    context.sendActivity('Create reminder ', JSON.stringify(context.activity));
+    let intent = topIntent(recognized);
+
+    if (intent) {
+        context.sendActivity(`Found ${intent} with ${JSON.stringify(recognized.entities)}`)
+    };
+}
+
+function replyWithReminders(context: TurnContext) {
+    context.sendActivity('Reminders...');
+}
+
+function replyWithHelp(context: TurnContext) {
+    context.sendActivity('Help topic');
+}
+
+function topIntent(recognized: LuisRecognizerResult): string | undefined {
+    let intentScoreMap = recognized.intents;
+    let topScore = 0;
+    var result: string | undefined = undefined;
+    for (let intentName in intentScoreMap) {
+        let score = intentScoreMap[intentName];
+        if (score > topScore) { topScore = score; result = intentName }
+    }
+    return result;
+}
