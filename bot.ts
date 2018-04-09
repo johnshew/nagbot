@@ -2,62 +2,74 @@
 import * as _debug from 'debug';
 let debug = _debug('tests');
 
-
 import * as reminders from './reminders';
 var remindersStore = reminders.remindersStore;
 // import * as nag from './nag';
 import * as reminderService from './app'; // Our app
 var reminderServer = reminderService.server;
 
-import { ConsoleAdapter, BotFrameworkAdapter, MemoryStorage, ConversationReference, StoreItems, TurnContext, Activity } from 'botbuilder';
 import { LuisRecognizer, LuisRecognizerResult } from 'botbuilder-ai';
 
 const appId = '6f2bf26c-dad4-4b18-a1da-b6936008a601 ';
 const subscriptionKey = '9886d9b8725a4cbeb19c3cf0708b5c83';
-const model = new LuisRecognizer({ appId: appId, subscriptionKey: subscriptionKey });
+const model = new LuisRecognizer({ appId: appId, subscriptionKey: subscriptionKey }); 
 
-/* import * as restify from 'restify';
+// Create Cloud Bot Adapter
 
-// Create server
-let server = restify.createServer();
-server.listen(process.env.port || process.env.PORT || 3978, function () {
-    console.log(`${server.name} listening to ${server.url}`);
-});
+import { ConsoleAdapter, BotFrameworkAdapter, MemoryStorage, ConversationReference, StoreItems, TurnContext, Activity } from 'botbuilder';
+import * as restify from 'restify';
 
 const cloudAdapter = new BotFrameworkAdapter({
     appId: process.env.MICROSOFT_APP_ID,
     appPassword: process.env.MICROSOFT_APP_PASSWORD
 });
 
-server.post('/api/messages', cloudAdapter.listen() as any);
- */
+let server = restify.createServer();
+server.listen(process.env.port || process.env.PORT || 3978, function () {
+    console.log(`${server.name} listening to ${server.url}`);
+});
+
+server.post('/api/messages', (request, response, next) => {
+    cloudAdapter.processActivity(request, response, async (context) => {
+        await handleActivity(context);
+        next();
+    });
+});
+// Create Console Bot Adapter
 
 const consoleAdapter = new ConsoleAdapter();
 const storage = new MemoryStorage();
-
-
 consoleAdapter.listen(async (context) => {
-    // console.log(`Got activity ${ JSON.stringify(context)}`);
+    await handleActivity(context);
+});
+
+
+async function handleActivity(context: TurnContext) {
     switch (context.activity.text.trim().toLowerCase()) {
         case 'help':
-            replyWithHelp(context);
-            return;
+            return replyWithHelp(context);
         case 'subscribe':
             subscribeUser(context);
-            context.sendActivity('You have subscribed');
-            return;
-    }
-    let recognized = await model.recognize(context);
-    let intentName = topIntent(recognized);
-    switch (intentName) {
-        case 'Reminder.Find':
-            return replyWithReminders(context);
-        case 'Reminder.Create':
-            return createReminders(context, recognized);
+            return context.sendActivity('You have subscribed');
         default:
-            return replyWithHelp(context);
+            context.sendActivity(`You said ${context.activity.text}`);
+
+            let recognized = await model.recognize(context);
+            let intentName = topIntent(recognized);
+            switch (intentName) {
+                case 'Reminder.Find':
+                    return await replyWithReminders(context);
+                case 'Reminder.Create':
+                    return await createReminders(context, recognized);
+                default:
+                    return await replyWithHelp(context);
+            }
     }
-});
+}
+
+function replyWithHelp(context: TurnContext) {
+    return context.sendActivity('Help topic');
+}
 
 function subscribeUser(context: TurnContext) {
     const activity = context.activity;
@@ -77,30 +89,32 @@ function subscribeUser(context: TurnContext) {
 }
 
 async function messageUser(user, message) {
-    const data = await storage.read([user]);
-    const conversationReference = data[user] as ConversationReference;
-    consoleAdapter.continueConversation(conversationReference, (context) => {
-        context.sendActivity("Notification");
-    });
+    try {
+        const data = await storage.read([user]);
+        const conversationReference = data[user] as ConversationReference;
+        cloudAdapter.continueConversation(conversationReference, async (context) => {
+            await context.sendActivity(message);
+        });
+    } catch (err) {
+        console.log(`messageUser error ${err}`);
+    }
+    return;
 }
 
 
-function createReminders(context: TurnContext, recognized: LuisRecognizerResult) {
-    context.sendActivity('Create reminder ', JSON.stringify(context.activity));
+async function createReminders(context: TurnContext, recognized: LuisRecognizerResult) {
+    context.sendActivity('Create reminder ');
     let intent = topIntent(recognized);
-
+    let score = intent ? recognized.intents[intent] : 0;
     if (intent) {
-        context.sendActivity(`Found ${intent} with ${JSON.stringify(recognized.entities)}`)
+        await context.sendActivity(`Score: ${score}, Intents: ${JSON.stringify(recognized.entities)}`)
     };
 }
 
-function replyWithReminders(context: TurnContext) {
-    context.sendActivity('Reminders...');
+async function replyWithReminders(context: TurnContext) {
+    await context.sendActivity('Reminders...');
 }
 
-function replyWithHelp(context: TurnContext) {
-    context.sendActivity('Help topic');
-}
 
 function topIntent(recognized: LuisRecognizerResult): string | undefined {
     let intentScoreMap = recognized.intents;
@@ -112,3 +126,5 @@ function topIntent(recognized: LuisRecognizerResult): string | undefined {
     }
     return result;
 }
+
+
