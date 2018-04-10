@@ -3,11 +3,18 @@ let debug = Debug("reminders");
 
 import * as uuid from 'uuid';
 import * as mongo from 'mongodb';
-import { MongoClient } from 'mongodb';
-var mongoClient = mongo.MongoClient
+var mongoClient = mongo.MongoClient;
+// var Logger = mongo.Logger;
+// Logger.setLevel('debug');
+// Logger.filter('class', [ 'Cursor']);
+
 var mongoPassword = process.env["MongoPassword"];
 if (!mongoPassword) throw new Error('Need mongopassword env variable');
 
+export class Conversation {
+    user: string;
+    conversationReference: any;
+}
 
 export class Reminder {
     id: string; // UUID
@@ -23,7 +30,7 @@ export class Reminder {
     }
 
     static LoadReminder(reminder: Reminder, json: any, cleanup: boolean = true): Reminder {
-        Object.assign(reminder, pick(json, 'id', 'active', 'description', 'nextNotification', 'lastNotificationSent', 'notificationPlan', 'user') );
+        Object.assign(reminder, pick(json, 'id', 'active', 'description', 'nextNotification', 'lastNotificationSent', 'notificationPlan', 'user'));
         if (cleanup) {
             if (typeof reminder.id != 'string') reminder.id = uuid.v4() as string;
             if (typeof reminder.active === 'undefined') reminder.active = true;
@@ -52,6 +59,21 @@ export class Reminder {
     }
 }
 
+interface Store<T> {
+    ready: boolean;
+    initialized: Promise<void>;
+    find(match: { [name: string]: any }): Promise<T[]>;
+    update(match: { [name: string]: any }, item: T): Promise<void>;
+    delete(match: { [name: string]: any }): Promise<void>;
+    deleteAll(): Promise<void>
+    forEach(match: { [name: string]: any }, per: (item: T) => void): Promise<void>;
+    close(): Promise<void>;
+}
+
+interface ConversationsStore extends Store<Conversation> {
+}
+
+
 interface RemindersStore {
     ready: boolean;
     initialized: Promise<void>;
@@ -63,6 +85,7 @@ interface RemindersStore {
     forEach(per: (reminder: Reminder) => void): Promise<void>;
     close(): Promise<void>;
 }
+
 
 class RemindersMongo implements RemindersStore {
     initialized: Promise<void>;
@@ -77,7 +100,7 @@ class RemindersMongo implements RemindersStore {
     }
 
     private async asyncInitialize(mongoUrl: string, dbName: string): Promise<void> {
-        this.client = await MongoClient.connect(mongoUrl);
+        this.client = await mongoClient.connect(mongoUrl);
         this.db = this.client.db(dbName);
         this.ready = true;
         return;
@@ -200,14 +223,158 @@ class RemindersInMem implements RemindersStore {
     }
 }
 
+
+class InMemStore<T> implements Store<T> {
+    public initialized = Promise.resolve();
+    public ready = true;
+    private store: T[];
+
+    constructor() { }
+
+    private static matchExactly<T>(x: T, y: Partial<T>): boolean {
+        let result = Object.getOwnPropertyNames(y).reduce((prev, cur) => { return (prev) ? (y[cur] == x[cur]) : false; }, true);
+        return result;
+    }
+
+    public async find(match: Partial<T>): Promise<T[]> {
+        let result = this.store.filter((item) => InMemStore.matchExactly(item, match))
+        return result;
+    }
+
+    public async update(match: Partial<T>, item: T): Promise<void> {
+        let index = this.store.findIndex((item) => InMemStore.matchExactly(item, match))
+        if (index < 0) throw 'could not update item';
+        this.store[index] = item;
+        return;
+    }
+
+    public async delete(match: Partial<T>): Promise<void> {
+        for (var i = 0; i < this.store.length; i++) {
+            if (InMemStore.matchExactly(this.store[i], match)) {
+                this.store.splice(i, 1);  // remove the item. 
+                i--;
+            }
+        }
+        return;
+    }
+
+    public async deleteAll(): Promise<void> {
+        delete this.store;
+        this.store = [];
+        return;
+    }
+
+    public async forEach(per: (item: T) => void): Promise<void> {
+        this.store.forEach(item => per(item));
+        return;
+    }
+
+    public async close() {
+        debug('closed RemindersImMem');
+        return;
+    }
+}
+
+class MongoStore<T> implements Store<T> {
+    initialized: Promise<void>;
+    public ready = false;
+    private client?: mongo.MongoClient;
+    private db?: mongo.Db;
+    private collectionName;
+
+    constructor(mongoUrl: string, dbName: string, collectionName: string) {
+        this.ready = false;
+        this.collectionName = collectionName;
+        this.initialized = this.asyncInitialize(mongoUrl, dbName);
+    }
+
+    private async asyncInitialize(mongoUrl: string, dbName: string): Promise<void> {
+        this.client = await mongoClient.connect(mongoUrl);
+        this.db = this.client.db(dbName);
+        this.ready = true;
+        return;
+    }
+
+
+
+    public async find(match: { [name: string]: any }): Promise<T[]> {
+        if (!this.ready) await this.initialized;
+        let result = await this.db!.collection(this.collectionName).find(match).toArray();
+        let items: T[] = [];
+        result.forEach((item) => {
+            items.push(<T>(<any>item));
+        });
+        return items;
+    }
+
+    public async update(match: { [name: string]: any }, item: T) {
+        if (!this.ready) await this.initialized;
+        let operation = await this.db!.collection(this.collectionName).updateOne(match, { $set: item }, { upsert: true });
+        if (operation.result.ok === 1) return;
+        throw new Error('update failed');
+    }
+
+    public async delete(match: { [name: string]: any }) {
+        if (!this.ready) await this.initialized;
+        let operation = await this.db!.collection(this.collectionName).deleteMany(match);
+        if (operation.result.ok === 1) return;
+        throw new Error('update failed');
+    }
+
+    public async forEach(per: (item: T) => void) {
+        if (!this.ready) await this.initialized;
+        return new Promise<void>((resolve, reject) => {
+            this.db!.collection(this.collectionName).find().forEach((item) => {
+                per(<T>(<any>item));
+            }, () => {
+                resolve();
+            })
+        });
+    }
+
+    public async deleteAll() {
+        if (!this.ready) await this.initialized;
+        let operation = await this.db!.collection(this.collectionName).deleteMany({});
+        if (operation.result.ok === 1) return;
+        throw new Error('delete all failed.');
+    }
+
+    public async close() {
+        if (!this.ready) await this.initialized;
+        let result = new Promise<void>(async (resolve, reject) => {
+            let client = await this.client;
+            client!.close(true, () => {
+                debug('closed')
+                resolve();
+            });
+        });
+        return result;
+    }
+}
+
+class ConversationsMongo extends MongoStore<Conversation> implements ConversationsStore {
+    constructor(mongoUrl: string, dbName: string) {
+        super(mongoUrl, dbName, 'conversations');
+    }
+}
+
+class ConversationsInMem extends InMemStore<Conversation> implements ConversationsStore {
+}
+
 export var remindersInMem = new RemindersInMem();
 export var remindersMongo = new RemindersMongo(`mongodb://shew-mongo:${encodeURIComponent(mongoPassword)}@shew-mongo.documents.azure.com:10255/?ssl=true&replicaSet=globaldb`, 'Test');
 export var remindersStore = remindersMongo;
 
+export var conversationsInMem = new ConversationsInMem();
+export var conversationsMongo = new ConversationsMongo(`mongodb://shew-mongo:${encodeURIComponent(mongoPassword)}@shew-mongo.documents.azure.com:10255/?ssl=true&replicaSet=globaldb`, 'Test');
+export var conversationsStore = conversationsMongo;
+
 export function close(callback?: () => void) {
-    let remindersInMemClose = remindersInMem.close().then(() => {});
-    let remindersMongoClose = remindersMongo.close().then(() => {});
-    let allDone = Promise.all([remindersInMemClose, remindersMongoClose]).then(() => {
+    let remindersInMemClose = remindersInMem.close().then(() => { });
+    let remindersMongoClose = remindersMongo.close().then(() => { });
+    let conversationsInMem = remindersInMem.close().then(() => { });
+    let conversationsStore = remindersMongo.close().then(() => { });
+    let allDone = Promise.all([remindersInMemClose, remindersMongoClose, conversationsInMem, conversationsStore]).then(() => {
         debug('closed reminders');
         if (callback) callback();
     });

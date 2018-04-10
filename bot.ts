@@ -4,6 +4,8 @@ let debug = _debug('tests');
 
 import * as reminders from './reminders';
 var remindersStore = reminders.remindersStore;
+var conversationsStore = reminders.conversationsStore;
+
 // import * as nag from './nag';
 import * as reminderService from './app'; // Our app
 var reminderServer = reminderService.server;
@@ -35,6 +37,7 @@ server.post('/api/messages', (request, response, next) => {
         next();
     });
 });
+
 // Create Console Bot Adapter
 
 const consoleAdapter = new ConsoleAdapter();
@@ -71,7 +74,29 @@ function replyWithHelp(context: TurnContext) {
     return context.sendActivity('Help topic');
 }
 
-function subscribeUser(context: TurnContext) {
+async function saveToMemoryStorage(user : string, conversationReference : ConversationReference) {
+    let changes = {};
+    changes[user] = conversationReference;
+    storage.write(changes);
+}
+
+async function saveToConversationsStore(user : string, conversationReference : Partial<ConversationReference>) {
+    await conversationsStore.update({ user: user}, { user: user, conversationReference: conversationReference} );
+}
+
+async function lookupInMemoryStore(user : string) : Promise<Partial<ConversationReference> | undefined> {
+    const data = await storage.read([user]);
+    const conversationReference = data[user] as ConversationReference;
+    return conversationReference;
+}
+
+async function lookupInConversationsStore(user : string) : Promise<Partial<ConversationReference> | undefined> {
+    let result = await conversationsStore.find( { user: user});
+    if (result.length == 0) { return undefined; }
+    else { return result[0].conversationReference; }
+}
+
+async function subscribeUser(context: TurnContext) {
     const activity = context.activity;
     const conversationReference = TurnContext.getConversationReference(activity);
     const user = (conversationReference.user) ? conversationReference.user.id : undefined;
@@ -79,9 +104,7 @@ function subscribeUser(context: TurnContext) {
         throw new Error('No user in subscribe');
     }
 
-    let changes = {};
-    changes[user] = conversationReference;
-    storage.write(changes);
+    await saveToConversationsStore(user, conversationReference);
 
     setTimeout(() => {
         messageUser(user, "You've been notified");
@@ -90,10 +113,10 @@ function subscribeUser(context: TurnContext) {
 
 async function messageUser(user, message) {
     try {
-        const data = await storage.read([user]);
-        const conversationReference = data[user] as ConversationReference;
+        let conversationReference = await lookupInConversationsStore(user);
+        if (!conversationReference) return;
         cloudAdapter.continueConversation(conversationReference, async (context) => {
-            await context.sendActivity(message);
+            await context.sendActivity(message).catch(e => { console.error(e); throw e })
         });
     } catch (err) {
         console.log(`messageUser error ${err}`);
@@ -101,18 +124,17 @@ async function messageUser(user, message) {
     return;
 }
 
-
 async function createReminders(context: TurnContext, recognized: LuisRecognizerResult) {
     context.sendActivity('Create reminder ');
     let intent = topIntent(recognized);
     let score = intent ? recognized.intents[intent] : 0;
     if (intent) {
-        await context.sendActivity(`Score: ${score}, Intents: ${JSON.stringify(recognized.entities)}`)
+        await context.sendActivity(`Score: ${score}, Intents: ${JSON.stringify(recognized.entities)}`).catch(e => { console.error(e); throw e })
     };
 }
 
 async function replyWithReminders(context: TurnContext) {
-    await context.sendActivity('Reminders...');
+    await context.sendActivity('Reminders...').catch(e => { console.error(e); throw e })
 }
 
 
