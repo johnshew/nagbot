@@ -18,7 +18,7 @@ const model = new LuisRecognizer({ appId: appId, subscriptionKey: subscriptionKe
 
 // Create Cloud Bot Adapter
 
-import { ConsoleAdapter, BotFrameworkAdapter, MemoryStorage, ConversationReference, StoreItems, TurnContext, Activity } from 'botbuilder';
+import { ConsoleAdapter, BotFrameworkAdapter, MemoryStorage, ConversationReference, StoreItems, TurnContext, Activity, BotAdapter } from 'botbuilder';
 import * as restify from 'restify';
 
 const cloudAdapter = new BotFrameworkAdapter({
@@ -104,18 +104,19 @@ async function subscribeUser(context: TurnContext) {
         throw new Error('No user in subscribe');
     }
 
+    let adapter = context.adapter;
     await saveToConversationsStore(user, conversationReference);
 
     setTimeout(() => {
-        messageUser(user, "You've been notified");
+        messageUser(adapter, user, "You've been notified");
     }, 4000);
 }
 
-async function messageUser(user, message) {
+async function messageUser(adapter : BotAdapter, user, message) {
     try {
         let conversationReference = await lookupInConversationsStore(user);
         if (!conversationReference) return;
-        cloudAdapter.continueConversation(conversationReference, async (context) => {
+        adapter.continueConversation(conversationReference, async (context) => {
             await context.sendActivity(message).catch(e => { console.error(e); throw e })
         });
     } catch (err) {
