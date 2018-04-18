@@ -14,7 +14,7 @@ import { LuisRecognizer, LuisRecognizerResult } from 'botbuilder-ai';
 
 const appId = '6f2bf26c-dad4-4b18-a1da-b6936008a601 ';
 const subscriptionKey = '9886d9b8725a4cbeb19c3cf0708b5c83';
-const model = new LuisRecognizer({ appId: appId, subscriptionKey: subscriptionKey }); 
+const model = new LuisRecognizer({ appId: appId, subscriptionKey: subscriptionKey });
 
 // Create Cloud Bot Adapter
 
@@ -38,6 +38,8 @@ server.post('/api/messages', (request, response, next) => {
     });
 });
 
+
+
 // Create Console Bot Adapter
 
 const consoleAdapter = new ConsoleAdapter();
@@ -46,8 +48,20 @@ consoleAdapter.listen(async (context) => {
     await handleActivity(context);
 });
 
+let adapters: { [channelId: string]: BotAdapter; } = {};
+
+function updateChannelIdToAdapterMap(context: TurnContext) {
+    // Not need here since we do the hack below to record the adapter.  Also this won't work with multiple BotFrameworkAdapters.
+    let channelId = (context.activity && context.adapter) ? TurnContext.getConversationReference(context.activity).channelId : undefined;
+    if (channelId) adapters[channelId] = context.adapter;
+}
+
+
 
 async function handleActivity(context: TurnContext) {
+
+    updateChannelIdToAdapterMap(context);
+
     switch (context.activity.text.trim().toLowerCase()) {
         case 'help':
             return replyWithHelp(context);
@@ -74,24 +88,24 @@ function replyWithHelp(context: TurnContext) {
     return context.sendActivity('Help topic');
 }
 
-async function saveToMemoryStorage(user : string, conversationReference : ConversationReference) {
+async function saveToMemoryStorage(user: string, conversationReference: ConversationReference) {
     let changes = {};
     changes[user] = conversationReference;
     storage.write(changes);
 }
 
-async function saveToConversationsStore(user : string, conversationReference : Partial<ConversationReference>) {
-    await conversationsStore.update({ user: user}, { user: user, conversationReference: conversationReference} );
+async function saveToConversationsStore(user: string, conversationReference: Partial<ConversationReference>) {
+    await conversationsStore.update({ user: user }, { user: user, conversationReference: conversationReference });
 }
 
-async function lookupInMemoryStore(user : string) : Promise<Partial<ConversationReference> | undefined> {
+async function lookupInMemoryStore(user: string): Promise<Partial<ConversationReference> | undefined> {
     const data = await storage.read([user]);
     const conversationReference = data[user] as ConversationReference;
     return conversationReference;
 }
 
-async function lookupInConversationsStore(user : string) : Promise<Partial<ConversationReference> | undefined> {
-    let result = await conversationsStore.find( { user: user});
+async function lookupInConversationsStore(user: string): Promise<Partial<ConversationReference> | undefined> {
+    let result = await conversationsStore.find({ user: user });
     if (result.length == 0) { return undefined; }
     else { return result[0].conversationReference; }
 }
@@ -112,7 +126,7 @@ async function subscribeUser(context: TurnContext) {
     }, 4000);
 }
 
-async function messageUser(adapter : BotAdapter, user, message) {
+async function messageUser(adapter: BotAdapter, user, message) {
     try {
         let conversationReference = await lookupInConversationsStore(user);
         if (!conversationReference) return;
