@@ -21,7 +21,7 @@
     "@types/restify": "^5.0.7",
     "@types/uuid": "^3.4.3",
     "env-cmd": "^7.0.0",
-    "typescript": "^2.8.1"
+    "typescript": "^2.9.2"
   },
   "dependencies": {
     "botbuilder": "^4.0.0-m3.0",
