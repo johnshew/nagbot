@@ -6,10 +6,7 @@ before_script:
   - npm run build
 
 before_install:
-  - echo mongo-password
-
-install:
-  - npm install
+  - echo Before
 
 cache:
   directories:
