@@ -100,7 +100,7 @@ class RemindersMongo implements RemindersStore {
     }
 
     private async asyncInitialize(mongoUrl: string, dbName: string): Promise<void> {
-        this.client = await mongoClient.connect(mongoUrl);
+        this.client = await mongoClient.connect(mongoUrl, {useNewUrlParser: true});
         this.db = this.client.db(dbName);
         this.ready = true;
         return;
