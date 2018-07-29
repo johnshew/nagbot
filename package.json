@@ -14,13 +14,13 @@
   "license": "MIT",
   "devDependencies": {
     "@types/chai": "^4.1.4",
-    "@types/chai-http": "^3.0.4",
+    "@types/chai-http": "^3.0.5",
     "@types/debug": "0.0.30",
     "@types/mocha": "^5.2.5",
     "@types/mongodb": "^3.1.2",
     "@types/restify": "^5.0.7",
     "@types/uuid": "^3.4.3",
-    "env-cmd": "^8.0.0",
+    "env-cmd": "^8.0.2",
     "typescript": "^2.9.2"
   },
   "dependencies": {
