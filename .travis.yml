@@ -8,6 +8,9 @@ before_script:
 before_install:
   - echo mongo-password
 
+install:
+  - npm install
+
 cache:
   directories:
     - "node_modules"
