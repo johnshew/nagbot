@@ -23,8 +23,14 @@ describe('API endpoint /api/v1.0/reminders', function () {
 
   after(function () {
     nag.AutoStop(20000, () => {
-      reminders.close(() => { });
-      server.close(() => debug('server closed'));
+      debug('closing server');
+      server.close(() => {
+        debug('server closed');
+        reminders.close(() => { 
+          debug('AutoStop complete');
+          process.exit(0);
+        });
+      });
     });
   });
 

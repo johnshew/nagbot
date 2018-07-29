@@ -1,6 +1,6 @@
 'use strict';
 import * as _debug from 'debug';
-let debug = _debug('tests');
+let debug = _debug('bots');
 
 import * as reminders from './reminders';
 var remindersStore = reminders.remindersStore;

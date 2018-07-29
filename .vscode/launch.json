@@ -44,7 +44,7 @@
             ],
             "outputCapture": "std",
             "env": {
-                "DEBUG": "nag,-mocha:*,-superagent"
+                "DEBUG": "nag,tests,reminders,-mocha:*,-superagent"
             },
             "internalConsoleOptions": "openOnSessionStart"
         },
