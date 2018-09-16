@@ -28,7 +28,7 @@
     "botbuilder-ai": "^4.0.0-preview1.2",
     "chai": "^4.1.2",
     "chai-http": "^4.2.0",
-    "debug": "^3.1.0",
+    "debug": "^4.0.1",
     "mocha": "^5.2.0",
     "mongodb": "^3.1.6",
     "restify": "^7.2.1",

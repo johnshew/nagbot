@@ -68,7 +68,7 @@ describe('API endpoint /api/v1.0/reminders', function () {
       .post('/api/v1.0/reminders')
       .send({
         id: uuid.v4() as string,
-        description: 'excercise',
+        description: 'exercise',
         nextNotification: Date.parse("Aug 28, 2018 23:30:00"),
         notificationPlan: "ramped"
       })

@@ -74,9 +74,9 @@ async function handleActivity(context: TurnContext) {
             let recognized = await model.recognize(context);
             let intentName = topIntent(recognized);
             switch (intentName) {
-                case 'Reminder.Find':
+                case 'Reminder_Find':
                     return await replyWithReminders(context);
-                case 'Reminder.Create':
+                case 'Reminder_Create':
                     return await createReminders(context, recognized);
                 default:
                     return await replyWithHelp(context);
@@ -142,7 +142,7 @@ async function messageUser(adapter: BotAdapter, user, message) {
 async function createReminders(context: TurnContext, recognized: RecognizerResult) {
     context.sendActivity('Create reminder ');
     let intent = topIntent(recognized);
-    let score = intent ? recognized.intents[intent] : 0;
+    let score = intent ? recognized.intents[intent].score : 0;
     if (intent) {
         await context.sendActivity(`Score: ${score}, Intents: ${JSON.stringify(recognized.entities)}`).catch(e => { console.error(e); throw e })
     };
