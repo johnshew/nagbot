@@ -162,10 +162,7 @@ describe('API endpoint /api/v1.0/reminders', function () {
     return chai.request(server)
       .get(`/api/v1.0/reminders/${remindersTracker[0]}`)
       .then(function (res) {
-        throw new Error('Object exists!');
-      })
-      .catch(function (err) {
-        expect(err).to.have.status(404);
+        expect(res).to.have.status(404);        
       });
   });
 
