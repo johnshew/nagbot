@@ -10,7 +10,7 @@ var conversationsStore = reminders.conversationsStore;
 import * as reminderService from './app'; // Our app
 var reminderServer = reminderService.server;
 
-import { LuisRecognizer, LuisRecognizerResult } from 'botbuilder-ai';
+import { LuisRecognizer } from 'botbuilder-ai';
 
 const appId = '6f2bf26c-dad4-4b18-a1da-b6936008a601 ';
 const subscriptionKey = '9886d9b8725a4cbeb19c3cf0708b5c83';
@@ -18,7 +18,7 @@ const model = new LuisRecognizer({ appId: appId, subscriptionKey: subscriptionKe
 
 // Create Cloud Bot Adapter
 
-import { ConsoleAdapter, BotFrameworkAdapter, MemoryStorage, ConversationReference, StoreItems, TurnContext, Activity, BotAdapter } from 'botbuilder';
+import { ConsoleAdapter, BotFrameworkAdapter, MemoryStorage, ConversationReference, StoreItems, TurnContext, Activity, BotAdapter, RecognizerResult } from 'botbuilder';
 import * as restify from 'restify';
 
 const cloudAdapter = new BotFrameworkAdapter({
@@ -85,7 +85,7 @@ async function handleActivity(context: TurnContext) {
 }
 
 function replyWithHelp(context: TurnContext) {
-    return context.sendActivity('Help topic');
+    return context.sendActivity('You can subscribe, create, or find reminders.');
 }
 
 async function saveToMemoryStorage(user: string, conversationReference: ConversationReference) {
@@ -139,7 +139,7 @@ async function messageUser(adapter: BotAdapter, user, message) {
     return;
 }
 
-async function createReminders(context: TurnContext, recognized: LuisRecognizerResult) {
+async function createReminders(context: TurnContext, recognized: RecognizerResult) {
     context.sendActivity('Create reminder ');
     let intent = topIntent(recognized);
     let score = intent ? recognized.intents[intent] : 0;
@@ -153,12 +153,12 @@ async function replyWithReminders(context: TurnContext) {
 }
 
 
-function topIntent(recognized: LuisRecognizerResult): string | undefined {
+function topIntent(recognized: RecognizerResult): string | undefined {
     let intentScoreMap = recognized.intents;
     let topScore = 0;
     var result: string | undefined = undefined;
     for (let intentName in intentScoreMap) {
-        let score = intentScoreMap[intentName];
+        let score = intentScoreMap[intentName].score;
         if (score > topScore) { topScore = score; result = intentName }
     }
     return result;
