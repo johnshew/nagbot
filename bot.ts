@@ -28,7 +28,7 @@ const cloudAdapter = new BotFrameworkAdapter({
 
 let server = restify.createServer();
 server.listen(process.env.port || process.env.PORT || 3978, function () {
-    console.log(`${server.name} listening to ${server.url}`);
+    console.log(`bot listening to ${server.url}`);
 });
 
 server.post('/api/messages', (request, response, next) => {

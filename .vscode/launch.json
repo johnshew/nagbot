@@ -9,6 +9,9 @@
             "request": "launch",
             "name": "Launch bot",
             "outputCapture": "std",
+            "env": {
+                "DEBUG": "nag,tests,reminders,-mocha:*,-superagent"
+            },
             "console": "integratedTerminal",
             "program": "${workspaceFolder}/lib/bot.js"
         },

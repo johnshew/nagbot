@@ -10,6 +10,8 @@ var remindersStore = reminders.remindersStore;
 // Setup restify server
 export function create(config: any, callback?: () => void) {
 
+    console.log ('Setup server at ' + config);
+
     let server = restify.createServer();
 
     server.use(restify.plugins.bodyParser());
@@ -20,9 +22,6 @@ export function create(config: any, callback?: () => void) {
         res.redirect('./public/test.html', next);
     });
 
-    server.get(/\/public\/?.*/, restify.plugins.serveStatic({
-        directory: __dirname
-    }));
 
     server.get('/api/v1.0/reminders', async (req, res, next) => {
         let reminders = await remindersStore.find("j@s.c");
@@ -64,7 +63,7 @@ export function create(config: any, callback?: () => void) {
             next();
             return;
         }
-        let reminder = new reminders.Reminder(req.body,true);        
+        let reminder = new reminders.Reminder(req.body, true);
         let exists = await remindersStore.get(req.params.id);
         let update = await remindersStore.update(reminder);
         res.header("Location", `/api/v1.0/reminders/${reminder.id}`);
@@ -110,11 +109,17 @@ export function create(config: any, callback?: () => void) {
         next();
     });
 
+    //    server.get(/\/public\/?.*/,
+    server.get("/public/*", 
+        restify.plugins.serveStatic({directory: __dirname + '/..'})
+    );
 
-    server.listen(config, () => {
+    server.listen(
+        config, () => {
         console.log(`Server listening on ${server.url}`);
         if (callback) callback();
     });
+
 
     return server;
 }
