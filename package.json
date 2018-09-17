@@ -4,7 +4,7 @@
   "description": "Hello World",
   "main": "app.js",
   "scripts": {
-    "test": "mocha --recursive lib/test",
+    "test": "nyc mocha --recursive lib/test",
     "start": "node ./lib/app.js",
     "build": "tsc -p .",
     "watch": "tsc -p . --watch",
@@ -21,6 +21,7 @@
     "@types/restify": "^7.2.4",
     "@types/uuid": "^3.4.4",
     "env-cmd": "^8.0.2",
+    "nyc": "^13.0.1",
     "typescript": "^3.0.3"
   },
   "dependencies": {
