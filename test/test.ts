@@ -51,7 +51,7 @@ describe('API endpoint /api/v1.0/reminders', function () {
     })
   });
 
-  // /api/v1.0/rem9inders GET 
+  // /api/v1.0/reminders GET 
   it('should return 0 reminders', () => {
     return chai.request(server)
       .get('/api/v1.0/reminders')
