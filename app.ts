@@ -6,4 +6,4 @@ import * as reminders from './reminders';
 
 export let server = httpServer.create(process.env.port || process.env.PORT || 8080);
 
-nag.Start(30000);
+nag.Start(15000);
