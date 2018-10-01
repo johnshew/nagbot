@@ -10,21 +10,34 @@ var conversationsStore = reminders.conversationsStore;
 import * as reminderService from './app'; // Our app
 var reminderServer = reminderService.server;
 
-import { LuisRecognizer } from 'botbuilder-ai';
+import { BotFrameworkAdapter, MemoryStorage, ConversationReference, StoreItems, TurnContext, Activity, BotAdapter, RecognizerResult } from 'botbuilder';
+import { LuisRecognizer, LuisApplication, LuisPredictionOptions } from 'botbuilder-ai';
+import { ConsoleAdapter } from './consoleAdapter';
+import * as restify from 'restify';
 
 const appId = '6f2bf26c-dad4-4b18-a1da-b6936008a601 ';
 const subscriptionKey = '9886d9b8725a4cbeb19c3cf0708b5c83';
-const model = new LuisRecognizer({ appId: appId, subscriptionKey: subscriptionKey });
 
-// Create Cloud Bot Adapter
-
-import { ConsoleAdapter, BotFrameworkAdapter, MemoryStorage, ConversationReference, StoreItems, TurnContext, Activity, BotAdapter, RecognizerResult } from 'botbuilder';
-import * as restify from 'restify';
 
 const cloudAdapter = new BotFrameworkAdapter({
     appId: process.env.MICROSOFT_APP_ID,
     appPassword: process.env.MICROSOFT_APP_PASSWORD
 });
+
+// Map the contents to the required format for `LuisRecognizer`.
+const luisApplication: LuisApplication = {
+    applicationId: appId,
+    endpointKey: subscriptionKey
+}
+
+// Create configuration for LuisRecognizer's runtime behavior.
+const luisPredictionOptions: LuisPredictionOptions = {
+    includeAllIntents: true,
+    log: true,
+    staging: false
+}
+
+const model = new LuisRecognizer(luisApplication, luisPredictionOptions);
 
 let server = restify.createServer();
 server.listen(process.env.port || process.env.PORT || 3978, function () {
@@ -37,8 +50,6 @@ server.post('/api/messages', (request, response, next) => {
         next();
     });
 });
-
-
 
 // Create Console Bot Adapter
 
